@@ -133,7 +133,11 @@ def execute(code, adresses):
         
 
         ip += 1
-    
+
+def run(code):
+    code, adresses = parse(code)
+    execute(code, adresses)
+
 if __name__ == '__main__':
     code, adresses = parse(sys.argv[1])
     execute(code, adresses)
