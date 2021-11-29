@@ -1,6 +1,8 @@
 
+# program generated
+
 *.vm
-*.pic
+*.bmp
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,visualstudiocode
