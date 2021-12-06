@@ -1,4 +1,5 @@
 import sys
+import math
 
 """ SVM - Simple Virtual Machine (or Stupid Virtual Machine)
 Very simplistic virtual machine aimed to illustrate some compilers' concepts.
@@ -110,6 +111,15 @@ def execute(code, adresses):
             sappend(val1/val2)    
         elif mnemo =="USUB":
             stack[-1] = -stack[-1]
+        elif mnemo == "MOD":
+            val2 = spop()
+            val1 = spop()
+            sappend(math.fmod(val1,val2)) 
+        elif mnemo == "POW":
+            val2 = spop()
+            val1 = spop()
+            sappend(math.pow(val1,val2)) 
+
             
         # (un)conditional jumps
         elif mnemo == "JMP":
