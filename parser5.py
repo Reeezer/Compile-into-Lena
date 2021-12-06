@@ -34,10 +34,13 @@ def p_statement_print(p):
 	'''statement : PRINT expression'''
 	p[0] = AST.PrintNode(p[2])
 	
-
-def p_structure(p):
+def p_while_structure(p):
 	"""structure : WHILE expression '{' programme '}'"""
 	p[0] = AST.WhileNode((p[2], p[4]))
+
+def p_if_structure(p):
+	"""structure : IF expression '{' programme '}'"""
+	p[0] = AST.IfNode((p[2], p[4]))
 
 def p_expression_op(p):
 	'''expression : expression ADD_OP expression

@@ -128,8 +128,8 @@ def transcript(self):
 
 @addToClass(AST.WhileNode)
 def transcript(self):
-    counter = transcript.while_flag
-    transcript.while_flag += 1
+    counter = transcript.cond_flag
+    transcript.cond_flag += 1
 
     jmp = transcriptor_dict['JMP']
     cond = cond_to_rgb(counter)
@@ -148,7 +148,25 @@ def transcript(self):
 
     return ret
 
-transcript.while_flag = 0
+@addToClass(AST.IfNode)
+def transcript(self):
+    counter = transcript.cond_flag
+    transcript.cond_flag += 1
+
+    body = body_to_rgb(counter)
+    jiz = transcriptor_dict['JIZ']
+    
+    ret = self.children[0].transcript()
+    ret += f"{jiz}\n{body}\n"    
+
+    ret += self.children[1].transcript()
+    ret += f"{body}\n"
+
+    transcript.pixels_counter += 3
+
+    return ret
+
+transcript.cond_flag = 0
 transcript.var_counter = 0
 transcript.pixels_counter = 0
 
@@ -184,7 +202,7 @@ def decode(code_rgb):
 
     rgb = (r, g, b)
     local_was_thing = was_last_operation_linked_with_body_or_cond
-    was_last_operation_linked_with_body_or_cond = rgb == transcriptor_dict['JMP'] or rgb == transcriptor_dict['JINZ']
+    was_last_operation_linked_with_body_or_cond = rgb == transcriptor_dict['JMP'] or rgb == transcriptor_dict['JINZ'] or rgb == transcriptor_dict['JIZ']
 
     # verify if a lambda was used
     if r == transcriptor_dict['VAR'](0)[0] and b == transcriptor_dict['VAR'](0)[2]:
@@ -202,14 +220,14 @@ def decode(code_rgb):
         double_dot = ':' if not local_was_thing else ''
         return f'COND{b}{double_dot}', local_was_thing
 
-
     # TODO refactor
     should_new_line = not (
         rgb == transcriptor_dict['PUSHC']
         or rgb == transcriptor_dict['PUSHV']
         or rgb == transcriptor_dict['SET']
         or rgb == transcriptor_dict['JMP']
-        or rgb == transcriptor_dict['JINZ'])
+        or rgb == transcriptor_dict['JINZ']
+        or rgb == transcriptor_dict['JIZ'])
     
     return inv_transcriptor_dict[rgb], should_new_line
 
@@ -228,7 +246,7 @@ def run_image(image_array):
             new_line = '\n' if should_new_line else ' '
             code += f'{decoded}{new_line}'
 
-    #print(code)
+    # print(code)
     # TODO: change behavior, instead of writing to file, give string
     opcode_filename = 'output.vm'
     with open(opcode_filename, 'w') as f:

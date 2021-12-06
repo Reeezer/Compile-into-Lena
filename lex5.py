@@ -3,6 +3,7 @@ import ply.lex as lex
 reserved_words = (
 	'while',
 	'print',
+	'if',
 )
 
 tokens = (
