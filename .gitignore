@@ -2,6 +2,7 @@
 # program generated
 
 generated/
+.idea/
 *.vm
 *.bmp
 
