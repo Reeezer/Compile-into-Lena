@@ -8,6 +8,7 @@ from ast import literal_eval as string_to_tuple
 
 transcriptor_dict = {
     'EMPTY': (0, 0, 0),
+    'PASS' : (0, 0, 1),
     'PUSHV': (0, 255, 0),
     'PUSHC': (0, 254, 0),
     'SET'  : (255, 0, 255),
@@ -20,10 +21,13 @@ transcriptor_dict = {
     'JMP'  : (206, 63, 215),
     'JIZ'  : (3, 248, 185),
     'JINZ' : (42, 143, 119),
-    'var' : lambda x: (0, x, 255),
-    'num' : lambda x, y: (122, x, y),
-    'body' : lambda x: (80, 140, x),
-    'cond' : lambda x: (200, 0, x),
+    'VAR' : lambda x: (0, x, 255),
+    'NUM' : lambda x, y: (122, x, y),
+    'BODY' : lambda x: (80, 140, x),
+    'COND' : lambda x: (200, 0, x),
+    'ENDIF' : lambda x: (180, 150, x),
+    'MOD' : (255, 43, 178),
+    'POW' : (146, 255, 1),
 }
 
 def can_invert(key):
@@ -41,6 +45,8 @@ operations = {
     '-': lambda x,y: f"{x}{y}{transcriptor_dict['SUB']}\n",
     '*': lambda x,y: f"{x}{y}{transcriptor_dict['MUL']}\n",
     '/': lambda x,y: f"{x}{y}{transcriptor_dict['DIV']}\n",
+    '%': lambda x,y: f"{x}{y}{transcriptor_dict['MOD']}\n",
+    '^': lambda x,y: f"{x}{y}{transcriptor_dict['POW']}\n",
 }
 
 vars = {}
@@ -48,7 +54,7 @@ vars = {}
 def var_to_rgb(var):
     if var in vars.keys():
         return vars[var]
-    x = transcriptor_dict['var'](transcript.var_counter)
+    x = transcriptor_dict['VAR'](transcript.var_counter)
     vars[var] = x
     transcript.var_counter += 1
     return x
@@ -57,19 +63,26 @@ def num_to_rgb(num):
     if num > 255 or num < -255:
         raise Exception
     neg = 1 if num >= 0 else 0
-    return transcriptor_dict['num'](neg, int(num))
+    return transcriptor_dict['NUM'](neg, int(num))
 
 def body_to_rgb(counter):
-    return transcriptor_dict['body'](counter)
+    return transcriptor_dict['BODY'](counter)
 
 def cond_to_rgb(counter):
-    return transcriptor_dict['cond'](counter)
+    return transcriptor_dict['COND'](counter)
+
+def endif_to_rgb(counter):
+    return transcriptor_dict['ENDIF'](counter)
 
 @addToClass(AST.ProgramNode)
 def transcript(self):
     ret = ''
     for c in self.children:
-        ret += c.transcript()
+        trans = c.transcript()
+        if c.type == 'if else':
+            # TODO ca rajoute un pass à chaque fois, faire en sorte de n'en rajouter que quand c'est nécessaire (else est la dernière instruction du bloc)
+            trans += f"{transcriptor_dict['PASS']}\n"
+        ret += trans
     return ret
 
 @addToClass(AST.TokenNode)
@@ -124,13 +137,13 @@ def transcript(self):
 
 @addToClass(AST.WhileNode)
 def transcript(self):
-    counter = transcript.while_flag
-    transcript.while_flag += 1
+    transcript.cond_flag += 1
+    counter = transcript.cond_flag
 
     jmp = transcriptor_dict['JMP']
+    jinz = transcriptor_dict['JINZ']
     cond = cond_to_rgb(counter)
     body = body_to_rgb(counter)
-    jinz = transcriptor_dict['JINZ']
     
     ret = f"{jmp}\n{cond}\n"
     ret += f"{body}\n"
@@ -144,7 +157,68 @@ def transcript(self):
 
     return ret
 
-transcript.while_flag = 0
+@addToClass(AST.IfNode)
+def transcript(self):
+    transcript.cond_flag += 1
+    counter = transcript.cond_flag
+   
+    transcript.if_flag += 1
+    if_counter = transcript.if_flag
+    
+    jmp = transcriptor_dict['JMP']
+    jinz = transcriptor_dict['JINZ']
+    cond = cond_to_rgb(counter)
+    body = body_to_rgb(counter)
+    endif = endif_to_rgb(if_counter)
+    
+    ret = f"{jmp}\n{cond}\n"
+    ret += f"{body}\n"
+    ret += self.children[1].transcript()
+    ret += f"{jmp}\n{endif}\n"
+
+    ret += f"{cond}\n"
+    ret += self.children[0].transcript()
+    ret += f"{jinz}\n{body}\n"
+    
+    ret += f"{endif}\n"
+
+    transcript.pixels_counter += 9
+
+    return ret
+
+@addToClass(AST.IfElseNode)
+def transcript(self):
+    transcript.cond_flag += 1
+    counter = transcript.cond_flag
+   
+    transcript.if_flag += 1
+    if_counter = transcript.if_flag
+
+    jmp = transcriptor_dict['JMP']
+    jinz = transcriptor_dict['JINZ']
+    cond = cond_to_rgb(counter)
+    body = body_to_rgb(counter)
+    endif = endif_to_rgb(if_counter)
+    
+    ret = f"{jmp}\n{cond}\n"
+    ret += f"{body}\n"
+    ret += self.children[1].transcript()
+    ret += f"{jmp}\n{endif}\n"
+
+    ret += f"{cond}\n"
+    ret += self.children[0].transcript()
+    ret += f"{jinz}\n{body}\n"
+    
+    ret += self.children[2].transcript()
+    
+    ret += f"{endif}\n"
+
+    transcript.pixels_counter += 9
+
+    return ret
+
+transcript.if_flag = 0
+transcript.cond_flag = 0
 transcript.var_counter = 0
 transcript.pixels_counter = 0
 
@@ -167,7 +241,7 @@ def generate_image(s, output):
             counter += 1
     
     image = Image.fromarray(image_array)
-    image.show()
+    #image.show()
     image.save(output)
 
 
@@ -180,24 +254,27 @@ def decode(code_rgb):
 
     rgb = (r, g, b)
     local_was_thing = was_last_operation_linked_with_body_or_cond
-    was_last_operation_linked_with_body_or_cond = rgb == transcriptor_dict['JMP'] or rgb == transcriptor_dict['JINZ']
+    was_last_operation_linked_with_body_or_cond = rgb == transcriptor_dict['JMP'] or rgb == transcriptor_dict['JINZ'] or rgb == transcriptor_dict['JIZ']
 
     # verify if a lambda was used
-    if r == transcriptor_dict['var'](0)[0] and b == transcriptor_dict['var'](0)[2]:
-        return f'var{g}', True
+    if r == transcriptor_dict['VAR'](0)[0] and b == transcriptor_dict['VAR'](0)[2]:
+        return f'VAR{g}', True
     
-    elif r == transcriptor_dict['num'](0, 0)[0]:
+    elif r == transcriptor_dict['NUM'](0, 0)[0]:
         neg = '-' if g == 0 else ''
         return f'{neg}{b}', True
     
-    elif r == transcriptor_dict['body'](0)[0] and g == transcriptor_dict['body'](0)[1]:
+    elif r == transcriptor_dict['BODY'](0)[0] and g == transcriptor_dict['BODY'](0)[1]:
         double_dot = ':' if not local_was_thing else ''
-        return f'body{b}{double_dot}', local_was_thing
+        return f'BODY{b}{double_dot}', local_was_thing
 
-    elif r == transcriptor_dict['cond'](0)[0] and g == transcriptor_dict['cond'](0)[1]:
+    elif r == transcriptor_dict['COND'](0)[0] and g == transcriptor_dict['COND'](0)[1]:
         double_dot = ':' if not local_was_thing else ''
-        return f'cond{b}{double_dot}', local_was_thing
+        return f'COND{b}{double_dot}', local_was_thing
 
+    elif r == transcriptor_dict['ENDIF'](0)[0] and g == transcriptor_dict['ENDIF'](0)[1]:
+        double_dot = ':' if not local_was_thing else ''
+        return f'endif{b}{double_dot}', local_was_thing
 
     # TODO refactor
     should_new_line = not (
@@ -205,7 +282,8 @@ def decode(code_rgb):
         or rgb == transcriptor_dict['PUSHV']
         or rgb == transcriptor_dict['SET']
         or rgb == transcriptor_dict['JMP']
-        or rgb == transcriptor_dict['JINZ'])
+        or rgb == transcriptor_dict['JINZ']
+        or rgb == transcriptor_dict['JIZ'])
     
     return inv_transcriptor_dict[rgb], should_new_line
 
@@ -224,7 +302,7 @@ def run_image(image_array):
             new_line = '\n' if should_new_line else ' '
             code += f'{decoded}{new_line}'
 
-    #print(code)
+    # print(code)
     # TODO: change behavior, instead of writing to file, give string
     opcode_filename = 'output.vm'
     with open(opcode_filename, 'w') as f:
@@ -235,7 +313,7 @@ def run_image(image_array):
     import os
     try:
         pass
-        os.remove(opcode_filename)
+        #os.remove(opcode_filename)
     except:
         print('unknown error')    
 
