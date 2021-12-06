@@ -127,6 +127,9 @@ class WhileNode(Node):
 
 class IfNode(Node):
     type = 'if'
+
+class IfElseNode(Node):
+    type = 'if else'
     
 class EntryNode(Node):
     type = 'ENTRY'

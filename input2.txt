@@ -1,8 +1,8 @@
 var0=0;
-while (var0-10) {
-	print var0;
-	if (var0-2) {
-		print 150
-	};
-	var0 = var0+1
-}
+if (var0-2) {
+	print 150
+};
+else {
+	print 160
+};
+print 10

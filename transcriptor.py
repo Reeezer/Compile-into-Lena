@@ -8,6 +8,7 @@ from ast import literal_eval as string_to_tuple
 
 transcriptor_dict = {
     'EMPTY': (0, 0, 0),
+    'PASS' : (0, 0, 1),
     'PUSHV': (0, 255, 0),
     'PUSHC': (0, 254, 0),
     'SET'  : (255, 0, 255),
@@ -24,6 +25,7 @@ transcriptor_dict = {
     'num' : lambda x, y: (122, x, y),
     'body' : lambda x: (80, 140, x),
     'cond' : lambda x: (200, 0, x),
+    'endif' : lambda x: (180, 150, x),
 }
 
 def can_invert(key):
@@ -65,11 +67,18 @@ def body_to_rgb(counter):
 def cond_to_rgb(counter):
     return transcriptor_dict['cond'](counter)
 
+def endif_to_rgb(counter):
+    return transcriptor_dict['endif'](counter)
+
 @addToClass(AST.ProgramNode)
 def transcript(self):
     ret = ''
     for c in self.children:
-        ret += c.transcript()
+        trans = c.transcript()
+        if c.type == 'if else':
+            # TODO ca rajoute un pass à chaque fois, faire en sorte de n'en rajouter que quand c'est nécessaire (else est la dernière instruction du bloc)
+            trans += f"{transcriptor_dict['PASS']}\n"
+        ret += trans
     return ret
 
 @addToClass(AST.TokenNode)
@@ -124,13 +133,13 @@ def transcript(self):
 
 @addToClass(AST.WhileNode)
 def transcript(self):
-    counter = transcript.cond_flag
     transcript.cond_flag += 1
+    counter = transcript.cond_flag
 
     jmp = transcriptor_dict['JMP']
+    jinz = transcriptor_dict['JINZ']
     cond = cond_to_rgb(counter)
     body = body_to_rgb(counter)
-    jinz = transcriptor_dict['JINZ']
     
     ret = f"{jmp}\n{cond}\n"
     ret += f"{body}\n"
@@ -146,22 +155,65 @@ def transcript(self):
 
 @addToClass(AST.IfNode)
 def transcript(self):
-    counter = transcript.cond_flag
     transcript.cond_flag += 1
-
-    body = body_to_rgb(counter)
-    jiz = transcriptor_dict['JIZ']
+    counter = transcript.cond_flag
+   
+    transcript.if_flag += 1
+    if_counter = transcript.if_flag
     
-    ret = self.children[0].transcript()
-    ret += f"{jiz}\n{body}\n"    
-
-    ret += self.children[1].transcript()
+    jmp = transcriptor_dict['JMP']
+    jinz = transcriptor_dict['JINZ']
+    cond = cond_to_rgb(counter)
+    body = body_to_rgb(counter)
+    endif = endif_to_rgb(if_counter)
+    
+    ret = f"{jmp}\n{cond}\n"
     ret += f"{body}\n"
+    ret += self.children[1].transcript()
+    ret += f"{jmp}\n{endif}\n"
 
-    transcript.pixels_counter += 3
+    ret += f"{cond}\n"
+    ret += self.children[0].transcript()
+    ret += f"{jinz}\n{body}\n"
+    
+    ret += f"{endif}\n"
+
+    transcript.pixels_counter += 9
 
     return ret
 
+@addToClass(AST.IfElseNode)
+def transcript(self):
+    transcript.cond_flag += 1
+    counter = transcript.cond_flag
+   
+    transcript.if_flag += 1
+    if_counter = transcript.if_flag
+
+    jmp = transcriptor_dict['JMP']
+    jinz = transcriptor_dict['JINZ']
+    cond = cond_to_rgb(counter)
+    body = body_to_rgb(counter)
+    endif = endif_to_rgb(if_counter)
+    
+    ret = f"{jmp}\n{cond}\n"
+    ret += f"{body}\n"
+    ret += self.children[1].transcript()
+    ret += f"{jmp}\n{endif}\n"
+
+    ret += f"{cond}\n"
+    ret += self.children[0].transcript()
+    ret += f"{jinz}\n{body}\n"
+    
+    ret += self.children[2].transcript()
+    
+    ret += f"{endif}\n"
+
+    transcript.pixels_counter += 9
+
+    return ret
+
+transcript.if_flag = 0
 transcript.cond_flag = 0
 transcript.var_counter = 0
 transcript.pixels_counter = 0
@@ -216,6 +268,10 @@ def decode(code_rgb):
         double_dot = ':' if not local_was_thing else ''
         return f'cond{b}{double_dot}', local_was_thing
 
+    elif r == transcriptor_dict['endif'](0)[0] and g == transcriptor_dict['endif'](0)[1]:
+        double_dot = ':' if not local_was_thing else ''
+        return f'endif{b}{double_dot}', local_was_thing
+
     # TODO refactor
     should_new_line = not (
         rgb == transcriptor_dict['PUSHC']
@@ -253,7 +309,7 @@ def run_image(image_array):
     import os
     try:
         pass
-        os.remove(opcode_filename)
+        #os.remove(opcode_filename)
     except:
         print('unknown error')    
 

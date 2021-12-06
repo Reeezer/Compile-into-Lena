@@ -6,9 +6,9 @@ _tabversion = '3.10'
 
 _lr_method = 'LALR'
 
-_lr_signature = "leftADD_OPleftMUL_OPrightUMINUSADD_OP IDENTIFIER IF MUL_OP NUMBER PRINT WHILE programme : statement programme : statement ';' programme  statement : assignation\n\t\t| structurestatement : PRINT expressionstructure : WHILE expression '{' programme '}'structure : IF expression '{' programme '}'expression : expression ADD_OP expression\n\t\t\t| expression MUL_OP expressionexpression : NUMBER\n\t\t| IDENTIFIER expression : '(' expression ')'  expression : ADD_OP expression %prec UMINUS assignation : IDENTIFIER '=' expression "
+_lr_signature = "leftADD_OPleftMUL_OPrightUMINUSADD_OP ELSE IDENTIFIER IF MUL_OP NUMBER PRINT WHILE programme : statement programme : statement ';' programme statement : assignation\n\t\t| structurestatement : PRINT expressionstructure : WHILE expression '{' programme '}'structure : IF expression '{' programme '}'\n\t\t| IF expression '{' programme '}' ';' ELSE '{' programme '}'expression : expression ADD_OP expression\n\t\t\t| expression MUL_OP expressionexpression : NUMBER\n\t\t| IDENTIFIER expression : '(' expression ')'  expression : ADD_OP expression %prec UMINUS assignation : IDENTIFIER '=' expression "
     
-_lr_action_items = {'PRINT':([0,9,24,25,],[5,5,5,5,]),'IDENTIFIER':([0,5,7,8,9,11,14,15,19,20,24,25,],[6,13,13,13,6,13,13,13,13,13,6,6,]),'WHILE':([0,9,24,25,],[7,7,7,7,]),'IF':([0,9,24,25,],[8,8,8,8,]),'$end':([1,2,3,4,10,12,13,18,21,23,26,27,28,31,32,],[0,-1,-3,-4,-5,-10,-11,-2,-13,-14,-8,-9,-12,-6,-7,]),'}':([2,3,4,10,12,13,18,21,23,26,27,28,29,30,31,32,],[-1,-3,-4,-5,-10,-11,-2,-13,-14,-8,-9,-12,31,32,-6,-7,]),';':([2,3,4,10,12,13,21,23,26,27,28,31,32,],[9,-3,-4,-5,-10,-11,-13,-14,-8,-9,-12,-6,-7,]),'NUMBER':([5,7,8,11,14,15,19,20,],[12,12,12,12,12,12,12,12,]),'(':([5,7,8,11,14,15,19,20,],[14,14,14,14,14,14,14,14,]),'ADD_OP':([5,7,8,10,11,12,13,14,15,16,17,19,20,21,22,23,26,27,28,],[11,11,11,19,11,-10,-11,11,11,19,19,11,11,-13,19,19,-8,-9,-12,]),'=':([6,],[15,]),'MUL_OP':([10,12,13,16,17,21,22,23,26,27,28,],[20,-10,-11,20,20,-13,20,20,20,-9,-12,]),'{':([12,13,16,17,21,26,27,28,],[-10,-11,24,25,-13,-8,-9,-12,]),')':([12,13,21,22,26,27,28,],[-10,-11,-13,28,-8,-9,-12,]),}
+_lr_action_items = {'PRINT':([0,9,24,25,35,],[5,5,5,5,5,]),'IDENTIFIER':([0,5,7,8,9,11,14,15,19,20,24,25,35,],[6,13,13,13,6,13,13,13,13,13,6,6,6,]),'WHILE':([0,9,24,25,35,],[7,7,7,7,7,]),'IF':([0,9,24,25,35,],[8,8,8,8,8,]),'$end':([1,2,3,4,10,12,13,18,21,23,26,27,28,31,32,37,],[0,-1,-3,-4,-5,-11,-12,-2,-14,-15,-9,-10,-13,-6,-7,-8,]),'}':([2,3,4,10,12,13,18,21,23,26,27,28,29,30,31,32,36,37,],[-1,-3,-4,-5,-11,-12,-2,-14,-15,-9,-10,-13,31,32,-6,-7,37,-8,]),';':([2,3,4,10,12,13,21,23,26,27,28,31,32,37,],[9,-3,-4,-5,-11,-12,-14,-15,-9,-10,-13,-6,33,-8,]),'NUMBER':([5,7,8,11,14,15,19,20,],[12,12,12,12,12,12,12,12,]),'(':([5,7,8,11,14,15,19,20,],[14,14,14,14,14,14,14,14,]),'ADD_OP':([5,7,8,10,11,12,13,14,15,16,17,19,20,21,22,23,26,27,28,],[11,11,11,19,11,-11,-12,11,11,19,19,11,11,-14,19,19,-9,-10,-13,]),'=':([6,],[15,]),'MUL_OP':([10,12,13,16,17,21,22,23,26,27,28,],[20,-11,-12,20,20,-14,20,20,20,-10,-13,]),'{':([12,13,16,17,21,26,27,28,34,],[-11,-12,24,25,-14,-9,-10,-13,35,]),')':([12,13,21,22,26,27,28,],[-11,-12,-14,28,-9,-10,-13,]),'ELSE':([33,],[34,]),}
 
 _lr_action = {}
 for _k, _v in _lr_action_items.items():
@@ -17,7 +17,7 @@ for _k, _v in _lr_action_items.items():
       _lr_action[_x][_k] = _y
 del _lr_action_items
 
-_lr_goto_items = {'programme':([0,9,24,25,],[1,18,29,30,]),'statement':([0,9,24,25,],[2,2,2,2,]),'assignation':([0,9,24,25,],[3,3,3,3,]),'structure':([0,9,24,25,],[4,4,4,4,]),'expression':([5,7,8,11,14,15,19,20,],[10,16,17,21,22,23,26,27,]),}
+_lr_goto_items = {'programme':([0,9,24,25,35,],[1,18,29,30,36,]),'statement':([0,9,24,25,35,],[2,2,2,2,2,]),'assignation':([0,9,24,25,35,],[3,3,3,3,3,]),'structure':([0,9,24,25,35,],[4,4,4,4,4,]),'expression':([5,7,8,11,14,15,19,20,],[10,16,17,21,22,23,26,27,]),}
 
 _lr_goto = {}
 for _k, _v in _lr_goto_items.items():
@@ -34,11 +34,12 @@ _lr_productions = [
   ('statement -> PRINT expression','statement',2,'p_statement_print','parser5.py',31),
   ('structure -> WHILE expression { programme }','structure',5,'p_while_structure','parser5.py',35),
   ('structure -> IF expression { programme }','structure',5,'p_if_structure','parser5.py',39),
-  ('expression -> expression ADD_OP expression','expression',3,'p_expression_op','parser5.py',43),
-  ('expression -> expression MUL_OP expression','expression',3,'p_expression_op','parser5.py',44),
-  ('expression -> NUMBER','expression',1,'p_expression_num_or_var','parser5.py',48),
-  ('expression -> IDENTIFIER','expression',1,'p_expression_num_or_var','parser5.py',49),
-  ('expression -> ( expression )','expression',3,'p_expression_paren','parser5.py',53),
-  ('expression -> ADD_OP expression','expression',2,'p_minus','parser5.py',57),
-  ('assignation -> IDENTIFIER = expression','assignation',3,'p_assign','parser5.py',61),
+  ('structure -> IF expression { programme } ; ELSE { programme }','structure',10,'p_if_structure','parser5.py',40),
+  ('expression -> expression ADD_OP expression','expression',3,'p_expression_op','parser5.py',47),
+  ('expression -> expression MUL_OP expression','expression',3,'p_expression_op','parser5.py',48),
+  ('expression -> NUMBER','expression',1,'p_expression_num_or_var','parser5.py',52),
+  ('expression -> IDENTIFIER','expression',1,'p_expression_num_or_var','parser5.py',53),
+  ('expression -> ( expression )','expression',3,'p_expression_paren','parser5.py',57),
+  ('expression -> ADD_OP expression','expression',2,'p_minus','parser5.py',61),
+  ('assignation -> IDENTIFIER = expression','assignation',3,'p_assign','parser5.py',65),
 ]

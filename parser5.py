@@ -18,7 +18,7 @@ def p_programme_statement(p):
 	p[0] = AST.ProgramNode(p[1])
 
 def p_programme_recursive(p):
-	''' programme : statement ';' programme '''
+	''' programme : statement ';' programme'''
 	p[0] = AST.ProgramNode([p[1]]+p[3].children)
 
 def p_statement(p):
@@ -36,8 +36,12 @@ def p_while_structure(p):
 	p[0] = AST.WhileNode((p[2], p[4]))
 
 def p_if_structure(p):
-	"""structure : IF expression '{' programme '}'"""
-	p[0] = AST.IfNode((p[2], p[4]))
+	"""structure : IF expression '{' programme '}'
+		| IF expression '{' programme '}' ';' ELSE '{' programme '}'"""
+	if len(p) == 6:
+		p[0] = AST.IfNode((p[2], p[4]))
+	elif len(p) == 11:
+		p[0] = AST.IfElseNode((p[2], p[4], p[9]))
 
 def p_expression_op(p):
 	'''expression : expression ADD_OP expression

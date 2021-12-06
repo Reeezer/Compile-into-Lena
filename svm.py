@@ -125,6 +125,8 @@ def execute(code, adresses):
             if cond == 0:
                 ip = adresses[code[ip][1]]
                 continue     
+        elif mnemo == "PASS":
+            pass
             
         # Fallback
         else:
