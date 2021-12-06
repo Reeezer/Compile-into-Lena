@@ -1,0 +1,8 @@
+aValue1=5%3;
+aValue2=aValue1^2;
+while(aValue2-128)
+{
+	aValue2 = aValue2*2;
+	print aValue2
+};
+print aValue2

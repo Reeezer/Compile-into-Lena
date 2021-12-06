@@ -1,4 +1,5 @@
 import ply.yacc as yacc
+import math
 
 from lex5 import tokens
 
@@ -9,6 +10,8 @@ operations = {
 	'-' : lambda x,y: x-y,
 	'*' : lambda x,y: x*y,
 	'/' : lambda x,y: x/y,
+	'%' : lambda x,y: math.fmod(x,y),
+	'^' : lambda x,y: math.pow(x,y),
 }
 
 vars = {}
@@ -45,7 +48,9 @@ def p_if_structure(p):
 
 def p_expression_op(p):
 	'''expression : expression ADD_OP expression
-			| expression MUL_OP expression'''
+			| expression MUL_OP expression
+			| expression MOD expression
+			| expression POW expression'''
 	p[0] = AST.OpNode(p[2], [p[1], p[3]])
 	
 def p_expression_num_or_var(p):
