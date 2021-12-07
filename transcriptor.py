@@ -4,20 +4,6 @@ from functools import reduce
 from ast import literal_eval as string_to_tuple
 from math import log
 
-# thoses MAX means "how much memory is allowed for each thing"
-# meaning for a var of 26 each variable will use 26/3 pixels
-# and also a maximum of 67108864 differents variables
-# 8 would mean maximum 256 instructions
-MAX_INSTRUCTIONS_BIT_SIZE = 8 # hide each on 8 bits
-# 3 would mean 8 differents var
-MAX_VAR_BIT_SIZE = 8
-# 5 would mean numeric values goes from -16 to 15
-MAX_NUM_BIT_SIZE = 9
-# same but for conditions
-MAX_CONDITIONS_BIT_SIZE = 8
-# same but for bodys
-MAX_BODIES_BIT_SIZE = 8
-
 transcriptor_dict = {
     'EMPTY': 0,
     'PUSHV': 1,
@@ -35,11 +21,27 @@ transcriptor_dict = {
     'MOD' : 13,
     'POW' : 14,
     'PASS' : 15,
-    'VAR' : lambda x: (13, x),  # the size is MAX_INSTRUCTIONS + MAX_VAR
-    'NUM' : lambda x: (14, x),  # the size is MAX_INSTRUCTIONS + MAX_NUM
-    'BODY' : lambda x: (15, x), # the size is MAX_INSTRUCTIONS + MAX_BODY
-    'COND' : lambda x: (16, x), # the size is MAX_INSTRUCTIONS + MAX_COND
+    'VAR' : lambda x: (16, x),  # the size is MAX_INSTRUCTIONS + MAX_VAR
+    'NUM' : lambda x: (17, x),  # the size is MAX_INSTRUCTIONS + MAX_NUM
+    'BODY' : lambda x: (18, x), # the size is MAX_INSTRUCTIONS + MAX_BODY
+    'COND' : lambda x: (19, x), # the size is MAX_INSTRUCTIONS + MAX_COND
 }
+
+
+# thoses MAX means "how much memory is allowed for each thing"
+# meaning for a var of 26 each variable will use 26/3 pixels
+# and also a maximum of 67108864 differents variables
+# 8 would mean maximum 256 instructions
+MAX_INSTRUCTIONS_BIT_SIZE = int(log(len(transcriptor_dict), 2) +1)
+# 3 would mean 8 differents var
+MAX_VAR_BIT_SIZE = 8
+# 5 would mean numeric values goes from -16 to 15
+# for now, negative numbers are not supported
+MAX_NUM_BIT_SIZE = 9
+# same but for conditions
+MAX_CONDITIONS_BIT_SIZE = 8
+# same but for bodys
+MAX_BODIES_BIT_SIZE = 8
 
 def can_invert(key):
     try:
@@ -323,7 +325,6 @@ def controle_size(image):
     
 def change_bit(bit, image, row_counter, column_counter, rgb_counter):
     '''rgb_value is {2, 1, 0} in rgb (...[2] means red value of pixel)'''
-    #print(row_counter, column_counter, rgb_counter)
     actual_color = image[row_counter][column_counter][rgb_counter]
     
     if actual_color % 2 == 0 and bit == 1:
@@ -342,7 +343,6 @@ def generate_image(s, source_image_path, output_image_path):
     print(f'source is {source_image_path}')
     print(f'output is {output_image_path}')
     
-    print(s)
     instructions = s.split('\n')[:-1] # remove last line (always empty line)
     import cv2
     image = cv2.imread(source_image_path, cv2.IMREAD_COLOR)
@@ -359,23 +359,34 @@ def generate_image(s, source_image_path, output_image_path):
         if (type(instruction) is tuple):
             value = instruction[1]
             instruction = instruction[0]
+        
+        
+        print(f'__________________________________________________')
+        print(f'{instruction}\tinstruction')
+        print(f'\t{split_into_bits(instruction, MAX_INSTRUCTIONS_BIT_SIZE)}')
+        if value is not None:
+            size_to_convert = MAX_NUM_BIT_SIZE if was_a_num else MAX_VAR_BIT_SIZE
+            print(f'{value}\tvalue')
+            print(f'\t{split_into_bits(value, size_to_convert)}')
+        
+
 
         for bit in split_into_bits(instruction, MAX_INSTRUCTIONS_BIT_SIZE):
             row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
-
+        
         was_a_num = instruction == transcriptor_dict['NUM'](0)[0]
         # add var id or num value
         if (value is not None):
-            x = MAX_NUM_BIT_SIZE if was_a_num else MAX_VAR_BIT_SIZE
-            for bit in split_into_bits(value, x):
+            size_to_convert = MAX_NUM_BIT_SIZE if was_a_num else MAX_VAR_BIT_SIZE
+            for bit in split_into_bits(value, size_to_convert):
                 row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
 
     # apply "EOF"
-    for bit in split_into_bits(transcriptor_dict['EMPTY'], MAX_NUM_BIT_SIZE):
+    for bit in split_into_bits(transcriptor_dict['EMPTY'], MAX_INSTRUCTIONS_BIT_SIZE):
         row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
 
-    cv2.imshow("image", image)
-    cv2.waitKey(0)
+    # cv2.imshow("image", image)
+    # cv2.waitKey(0)
     cv2.imwrite(output_image_path, image)
 
 
@@ -388,22 +399,20 @@ def bit_array_to_int(arr):
     return x    
 
 was_last_operation_linked_with_body_or_cond = False
-was_last_operation_a_var = False
-was_last_operation_a_num = False
-was_last_operation_a_body = False
-was_last_operation_a_cond = False
-was_last_operation_a_endif = False
+was_last_instruction_var = False
+was_last_instruction_num = False
+was_last_instruction_body = False
+was_last_instruction_cond = False
 
 
 def decode(code_rgb):
     '''headhache assured on this function'''
 
     global was_last_operation_linked_with_body_or_cond
-    global was_last_operation_a_var
-    global was_last_operation_a_num
-    global was_last_operation_a_body
-    global was_last_operation_a_cond
-    global was_last_operation_a_endif
+    global was_last_instruction_var
+    global was_last_instruction_num
+    global was_last_instruction_body
+    global was_last_instruction_cond
 
     # false when you have to add : and no \n to the line
     # true for the inverse
@@ -419,45 +428,47 @@ def decode(code_rgb):
     #print(f'{old_was_last_operation_linked_with_body_or_cond} when {inv_transcriptor_dict[code_rgb] if can_invert(code_rgb) else code_rgb}')
 
     if code_rgb == transcriptor_dict['VAR'](0)[0]:
-        was_last_operation_a_var = True
+        was_last_instruction_var = True
         return ' ', False
 
-    elif was_last_operation_a_var:
-        was_last_operation_a_var = False
+    elif was_last_instruction_var:
+        was_last_instruction_var = False
         return f'var{code_rgb}', True
     
     elif code_rgb == transcriptor_dict['NUM'](0)[0]:
-        was_last_operation_a_num = True
+        was_last_instruction_num = True
         return ' ', False
 
-    elif was_last_operation_a_num:
-        was_last_operation_a_num = False
+    elif was_last_instruction_num:
+        was_last_instruction_num = False
         return f'{code_rgb}', True
     
     elif code_rgb == transcriptor_dict['BODY'](0)[0]:
-        was_last_operation_a_body = True
+        was_last_instruction_body = True
         return ' ' if old_was_last_operation_linked_with_body_or_cond else '', False
     
-    elif was_last_operation_a_body:
-        was_last_operation_a_body = False
+    elif was_last_instruction_body:
+        was_last_instruction_body = False
         double_dot = ':' if not old_was_last_operation_linked_with_body_or_cond else ''
         return f'body{code_rgb}{double_dot} ', old_was_last_operation_linked_with_body_or_cond
 
     elif code_rgb == transcriptor_dict['COND'](0)[0]:
-        was_last_operation_a_cond = True
+        was_last_instruction_cond = True
         return ' ' if old_was_last_operation_linked_with_body_or_cond else '', False
     
-    elif was_last_operation_a_cond:
-        was_last_operation_a_cond = False
+    elif was_last_instruction_cond:
+        was_last_instruction_cond = False
         double_dot = ':' if not old_was_last_operation_linked_with_body_or_cond else ''
         return f'cond{code_rgb}{double_dot} ', old_was_last_operation_linked_with_body_or_cond
 
 
-    was_last_operation_a_var = code_rgb == transcriptor_dict['VAR']
-    was_last_operation_a_num = code_rgb == transcriptor_dict['NUM']
+    # was_last_instruction_var = code_rgb == transcriptor_dict['VAR'](0)[0]
+    # was_last_instruction_num = code_rgb == transcriptor_dict['NUM'](0)[0]
+    # was_last_instruction_body = code_rgb == transcriptor_dict['BODY'](0)[0]
+    # was_last_instruction_cond = code_rgb == transcriptor_dict['COND'](0)[0]
 
     should_new_line = not (
-        code_rgb == transcriptor_dict['PUSHC']
+           code_rgb == transcriptor_dict['PUSHC']
         or code_rgb == transcriptor_dict['PUSHV']
         or code_rgb == transcriptor_dict['SET']
         or code_rgb == transcriptor_dict['JMP']
@@ -468,33 +479,52 @@ def decode(code_rgb):
 
 def run_image(image_array):
     from svm import run
+
+    global was_last_operation_linked_with_body_or_cond
+    global was_last_instruction_var
+    global was_last_instruction_num
+    global was_last_instruction_body
+    global was_last_instruction_cond
+
     code = ''
 
     row_counter = 0
     column_counter = 0
     rgb_counter = 0
 
+    size_to_read = MAX_INSTRUCTIONS_BIT_SIZE
+
     for _ in range(image_array.shape[0] * image_array.shape[1]):
         x = []
-        for _ in range(MAX_INSTRUCTIONS_BIT_SIZE):
-            x.append(image_array[row_counter][column_counter][rgb_counter])
-            #print(x)
+        for _ in range(size_to_read):
+            x.append(image_array[row_counter][column_counter][rgb_counter] & 0b0000_0001)
             rgb_counter += 1
             if rgb_counter == 3:
                 rgb_counter = 0
                 row_counter, column_counter = increment(row_counter, column_counter, image_array)
         
         code_as_bit = bit_array_to_int(x)
-        print(code_as_bit)
+
         if (code_as_bit == transcriptor_dict['EMPTY']
-        and not was_last_operation_a_num
-        and not was_last_operation_a_var
-        and not was_last_operation_a_cond
-        and not was_last_operation_a_body):
+        and not was_last_instruction_num
+        and not was_last_instruction_var
+        and not was_last_instruction_cond
+        and not was_last_instruction_body):
             break
 
         decoded, should_new_line = decode(code_as_bit)
         
+        if was_last_instruction_num:
+            size_to_read = MAX_NUM_BIT_SIZE
+        elif was_last_instruction_var:
+            size_to_read = MAX_VAR_BIT_SIZE
+        elif was_last_instruction_cond:
+            size_to_read = MAX_CONDITIONS_BIT_SIZE
+        elif was_last_instruction_body:
+            size_to_read = MAX_BODIES_BIT_SIZE
+        else:
+            size_to_read = MAX_INSTRUCTIONS_BIT_SIZE
+
         new_line = '\n' if should_new_line else ''
         code += f'{decoded}{new_line}'
 
@@ -503,7 +533,7 @@ def run_image(image_array):
     with open(opcode_filename, 'w') as f:
         f.write(code)
     
-    print(code)
+    #print(code)
 
     run(opcode_filename)
 
