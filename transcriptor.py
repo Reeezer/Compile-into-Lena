@@ -360,14 +360,15 @@ def generate_image(s, source_image_path, output_image_path):
             value = instruction[1]
             instruction = instruction[0]
         
-        
-        print(f'__________________________________________________')
-        print(f'{instruction}\tinstruction')
-        print(f'\t{split_into_bits(instruction, MAX_INSTRUCTIONS_BIT_SIZE)}')
-        if value is not None:
-            size_to_convert = MAX_NUM_BIT_SIZE if was_a_num else MAX_VAR_BIT_SIZE
-            print(f'{value}\tvalue')
-            print(f'\t{split_into_bits(value, size_to_convert)}')
+
+        # USEFULL FOR DEBUG, TRY IT !       
+        # print(f'__________________________________________________')
+        # print(f'{instruction}\tinstruction')
+        # print(f'\t{split_into_bits(instruction, MAX_INSTRUCTIONS_BIT_SIZE)}')
+        # if value is not None:
+        #     size_to_convert = MAX_NUM_BIT_SIZE if was_a_num else MAX_VAR_BIT_SIZE
+        #     print(f'{value}\tvalue')
+        #     print(f'\t{split_into_bits(value, size_to_convert)}')
         
 
 
@@ -539,8 +540,7 @@ def run_image(image_array):
 
     import os
     try:
-        pass
-        #os.remove(opcode_filename)
+        os.remove(opcode_filename)
     except:
         print('unknown error')    
 
@@ -579,7 +579,7 @@ if __name__ == '__main__':
         print('generating picture from code...\n')
 
         x = re.search("^(.+)\..+$", source_image_path)
-        IMAGE_EXTENSION = 'bmp'
+        IMAGE_EXTENSION = 'png'
         output = f'code_{x.group(1)}.{IMAGE_EXTENSION}'
 
         with open(file_path) as f:
