@@ -1,5 +1,5 @@
 var0=0;
 while (var0-10) {
 	print var0;
-	var0 = var0+1
+	print var0+1
 }

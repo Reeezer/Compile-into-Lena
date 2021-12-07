@@ -1,29 +1,41 @@
 import AST
 from AST import addToClass
 from functools import reduce
-import math
-import numpy as np
-from PIL import Image
 from ast import literal_eval as string_to_tuple
+from math import log
+
+# thoses MAX means "how much memory is allowed for each thing"
+# meaning for a var of 26 each variable will use 26/3 pixels
+# and also a maximum of 67108864 differents variables
+# 8 would mean maximum 256 instructions
+MAX_INSTRUCTIONS_BIT_SIZE = 8 # hide each on 8 bits
+# 3 would mean 8 differents var
+MAX_VAR_BIT_SIZE = 8
+# 5 would mean numeric values goes from -16 to 15
+MAX_NUM_BIT_SIZE = 8
+# same but for conditions
+MAX_CONDITIONS_BIT_SIZE = 8
+# same but for bodys
+MAX_BODIES_BIT_SIZE = 8
 
 transcriptor_dict = {
-    'EMPTY': (0, 0, 0),
-    'PUSHV': (0, 255, 0),
-    'PUSHC': (0, 254, 0),
-    'SET'  : (255, 0, 255),
-    'ADD'  : (255, 254, 33),
-    'SUB'  : (203, 61, 1),
-    'MUL'  : (155, 142, 16),
-    'DIV'  : (255, 28, 119),
-    'PRINT': (255, 143, 119),
-    'USUB' : (121, 97, 243),
-    'JMP'  : (206, 63, 215),
-    'JIZ'  : (3, 248, 185),
-    'JINZ' : (42, 143, 119),
-    'var' : lambda x: (0, x, 255),
-    'num' : lambda x, y: (122, x, y),
-    'body' : lambda x: (80, 140, x),
-    'cond' : lambda x: (200, 0, x),
+    'EMPTY': 0,
+    'PUSHV': 1,
+    'PUSHC': 2,
+    'SET'  : 3,
+    'ADD'  : 4,
+    'SUB'  : 5,
+    'MUL'  : 6,
+    'DIV'  : 7,
+    'PRINT': 8,
+    'USUB' : 9,
+    'JMP'  : 10,
+    'JIZ'  : 11,
+    'JINZ' : 12,
+    'VAR' : lambda x: (13, x),  # the size is MAX_INSTRUCTIONS + MAX_VAR
+    'NUM' : lambda x: (14, x),  # the size is MAX_INSTRUCTIONS + MAX_NUM
+    'BODY' : lambda x: (15, x), # the size is MAX_INSTRUCTIONS + MAX_BODY
+    'COND' : lambda x: (16, x), # the size is MAX_INSTRUCTIONS + MAX_COND
 }
 
 def can_invert(key):
@@ -43,27 +55,48 @@ operations = {
     '/': lambda x,y: f"{x}{y}{transcriptor_dict['DIV']}\n",
 }
 
-vars = {}
 
+def verify_limits(value, limit, error, is_unsigned):
+    if is_unsigned:
+        if value > pow(2, limit):
+            raise Exception(error)
+    else:
+        if value > pow(2, limit-1) -1 or value < -pow(2, limit-1):
+            raise Exception(error)
+
+vars = {}
 def var_to_rgb(var):
     if var in vars.keys():
+        transcript.var_counter += 1
+        transcript.instructions_counter += 1
         return vars[var]
-    x = transcriptor_dict['var'](transcript.var_counter)
+    verify_limits(transcript.var_counter, MAX_VAR_BIT_SIZE, 'too much var', True)
+    x = transcriptor_dict['VAR'](transcript.var_counter)
     vars[var] = x
     transcript.var_counter += 1
+    transcript.instructions_counter += 1
     return x
 
+NEGATIVE = 0
+POSITIVE = 1
 def num_to_rgb(num):
-    if num > 255 or num < -255:
-        raise Exception
-    neg = 1 if num >= 0 else 0
-    return transcriptor_dict['num'](neg, int(num))
+    verify_limits(num, MAX_NUM_BIT_SIZE, 'number too big or too short', False)
+    x = int(num)
+    transcript.const_counter += 1
+    transcript.instructions_counter += 1
+    return transcriptor_dict['NUM'](x)
 
-def body_to_rgb(counter):
-    return transcriptor_dict['body'](counter)
+def body_to_rgb():
+    verify_limits(transcript.body_counter, MAX_BODIES_BIT_SIZE, 'too much bodies', True)
+    transcript.body_counter += 2 # each time, two are used
+    transcript.instructions_counter += 2 # each time, two are used
+    return transcriptor_dict['BODY'](transcript.body_counter)
 
-def cond_to_rgb(counter):
-    return transcriptor_dict['cond'](counter)
+def cond_to_rgb():
+    verify_limits(transcript.cond_counter, MAX_CONDITIONS_BIT_SIZE, 'too much conditions', True)
+    transcript.cond_counter += 2 # each time, two are used
+    transcript.instructions_counter += 2 # each time, two are used
+    return transcriptor_dict['COND'](transcript.cond_counter)
 
 @addToClass(AST.ProgramNode)
 def transcript(self):
@@ -77,11 +110,13 @@ def transcript(self):
     if isinstance(self.tok, str):
         x = transcriptor_dict['PUSHV']
         v = var_to_rgb(self.tok)
+        # transcript.var_counter += 1 added in var_to_rgb
     else:
         x = transcriptor_dict['PUSHC']
         v = num_to_rgb(self.tok)
+        # transcript.const_counter += 1 added in num_to_rgb
 
-    transcript.pixels_counter += 2
+    transcript.instructions_counter += 1
     return f"{x}\n{v}\n"
 
 @addToClass(AST.OpNode)
@@ -91,10 +126,11 @@ def transcript(self):
         x = transcriptor_dict['PUSHC']
         v = num_to_rgb(0)
 
-        transcript.pixels_counter += 2
+        # transcript.const_counter += 1 added in num_to_rgb
+        transcript.instructions_counter += 1 # PUSHC
         args.insert(0, f"{x}\n{v}\n")
 
-    transcript.pixels_counter += 1
+    transcript.instructions_counter += 1 # operation
     return reduce(operations[self.op], args)
 
 @addToClass(AST.AssignNode)
@@ -104,7 +140,8 @@ def transcript(self):
     x = transcriptor_dict['SET']
     v = var_to_rgb(self.children[0].tok)
 
-    transcript.pixels_counter += 2
+    # transcript.var_counter += 1 added in var_to_rgb
+    transcript.instructions_counter += 1
 
     ret += f"{x}\n{v}\n"
     
@@ -115,8 +152,7 @@ def transcript(self):
     ret = self.children[0].transcript()
 
     x = transcriptor_dict['PRINT']
-    
-    transcript.pixels_counter += 1
+    transcript.instructions_counter += 1
 
     ret += f"{x}\n"
 
@@ -124,12 +160,10 @@ def transcript(self):
 
 @addToClass(AST.WhileNode)
 def transcript(self):
-    counter = transcript.while_flag
-    transcript.while_flag += 1
 
     jmp = transcriptor_dict['JMP']
-    cond = cond_to_rgb(counter)
-    body = body_to_rgb(counter)
+    cond = cond_to_rgb()
+    body = body_to_rgb()
     jinz = transcriptor_dict['JINZ']
     
     ret = f"{jmp}\n{cond}\n"
@@ -140,96 +174,260 @@ def transcript(self):
     ret += self.children[0].transcript()
     ret += f"{jinz}\n{body}\n"
 
-    transcript.pixels_counter += 6
+
+    transcript.instructions_counter += 2 # one jump, one jinz
 
     return ret
 
-transcript.while_flag = 0
 transcript.var_counter = 0
-transcript.pixels_counter = 0
+transcript.instructions_counter = 0
+transcript.const_counter = 0
+transcript.body_counter = 0
+transcript.cond_counter = 0
 
 arg_generate = '-g'
 arg_run = '-r'
 
-def generate_image(s, output):
-    size = int(math.sqrt(transcript.pixels_counter)) + 1
-    
-    colors = s.split('\n')[:-1] # remove last line (always empty line)
-    counter = 0
-    image_array = np.empty((size, size, 3), dtype=np.uint8)
+def get_instruction(instruction):
+    try:
+        return int(instruction) # is it an int
+    except ValueError: # this is a tuple
+        return string_to_tuple(instruction)
 
-    for i in range(size):
-        for j in range(size):
-            if counter >= len(colors):
-                image_array[i, j] = transcriptor_dict['EMPTY']
-            else:
-                image_array[i, j] = string_to_tuple(colors[counter])
-            counter += 1
-    
-    image = Image.fromarray(image_array)
-    image.show()
-    image.save(output)
+def split_into_bits(value, max_bits):
+    if (value == 0):
+        return [0 for _ in range(max_bits)]
+    value_nb_bits = int(log(value, 2)+1)
+    if value_nb_bits > max_bits:
+        raise Exception(f'value too big for max_bits, value is {value} ({value_nb_bits} bits are needed), but max allowed bits are {max_bits}')
 
+    ret = []
+
+    for i in range(max_bits):
+        i = max_bits - i -1
+        powed = pow(2, i)
+        if value / powed >= 1:
+            ret.append(1)
+            value -= powed
+        else:
+            ret.append(0)
+
+    return ret
+
+def increment(row, column, array):
+    #print(f'row, column {row}, {column}')
+    column += 1
+    if column >= array.shape[0]:
+        column = 0
+        row += 1
+    return row, column
+
+def controle_size(image):
+    '''size: total pixels needed '''
+    required_size = (transcript.instructions_counter * MAX_INSTRUCTIONS_BIT_SIZE
+    + transcript.var_counter   * MAX_VAR_BIT_SIZE
+    + transcript.const_counter * MAX_NUM_BIT_SIZE
+    + transcript.body_counter  * MAX_BODIES_BIT_SIZE
+    + transcript.cond_counter * MAX_CONDITIONS_BIT_SIZE)
+
+    # print(f'instr nb {transcript.instructions_counter}')
+    # print(f'var nb {transcript.var_counter}')
+    # print(f'const nb {transcript.const_counter}')
+    # print(f'body nb {transcript.body_counter}')
+    # print(f'cond nb {transcript.cond_counter}\n')
+
+    # how much pixels are needed
+    required_size += MAX_INSTRUCTIONS_BIT_SIZE # add the EMPTY operator at the end
+    # print(f'required size {required_size}')
+    required_size = int(required_size / 3 + 1)
+
+    image_size = image.shape[0] * image.shape[1]
+    print(f'{required_size} pixels are needed, image has {image_size} pixels')
+
+    if (image_size < required_size):
+        print(f'the image has only {image_size} pixels')
+        exit(0)
+    
+def change_bit(bit, image, row_counter, column_counter, rgb_counter):
+    '''rgb_value is {2, 1, 0} in rgb (...[2] means red value of pixel)'''
+    #print(row_counter, column_counter, rgb_counter)
+    actual_color = image[row_counter][column_counter][rgb_counter]
+    
+    if actual_color % 2 == 0 and bit == 1:
+        image[row_counter][column_counter][rgb_counter] += 1
+    elif actual_color % 2 == 1 and bit == 0:
+        image[row_counter][column_counter][rgb_counter] -= 1
+        
+    rgb_counter += 1
+    if rgb_counter == 3:
+        rgb_counter = 0
+        row_counter, column_counter = increment(row_counter, column_counter, image)
+    
+    return row_counter, column_counter, rgb_counter
+
+def generate_image(s, source_image_path, output_image_path):
+    print(f'source is {source_image_path}')
+    print(f'output is {output_image_path}')
+    
+    #print(s)
+    instructions = s.split('\n')[:-1] # remove last line (always empty line)
+    import cv2
+    image = cv2.imread(source_image_path, cv2.IMREAD_COLOR)
+    
+    controle_size(image)
+
+    column_counter = 0
+    row_counter = 0
+    rgb_counter = 0
+    
+    for instruction in instructions: # instruction is str
+        instruction = get_instruction(instruction)
+        value = None
+        if (type(instruction) is tuple):
+            value = instruction[1]
+            instruction = instruction[0]
+
+        for bit in split_into_bits(instruction, MAX_INSTRUCTIONS_BIT_SIZE):
+            row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
+
+        was_a_num = instruction == transcriptor_dict['NUM'](0)[0]
+        # add var id or num value
+        if (value is not None):
+            x = MAX_NUM_BIT_SIZE if was_a_num else MAX_VAR_BIT_SIZE
+            for bit in split_into_bits(value, x):
+                row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
+
+    # apply "EOF"
+    for bit in split_into_bits(transcriptor_dict['EMPTY'], MAX_NUM_BIT_SIZE):
+        row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
+
+    cv2.imshow("image", image)
+    cv2.waitKey(0)
+    cv2.imwrite(output_image_path, image)
+
+
+def bit_array_to_int(arr):
+    arr.reverse()
+    x = 0
+    for i in range(len(arr)):
+        x += arr[i] * pow(2, i)
+
+    return x    
 
 was_last_operation_linked_with_body_or_cond = False
+was_last_operation_a_var = False
+was_last_operation_a_num = False
+was_last_operation_a_body = False
+was_last_operation_a_cond = False
+shall_get_number = True
 
 
 def decode(code_rgb):
+    '''headhache assured on this function'''
+
     global was_last_operation_linked_with_body_or_cond
-    b, g, r = code_rgb
+    global was_last_operation_a_var
+    global was_last_operation_a_num
+    global was_last_operation_a_body
+    global was_last_operation_a_cond
 
-    rgb = (r, g, b)
-    local_was_thing = was_last_operation_linked_with_body_or_cond
-    was_last_operation_linked_with_body_or_cond = rgb == transcriptor_dict['JMP'] or rgb == transcriptor_dict['JINZ']
+    # false when you have to add : and no \n to the line
+    # true for the inverse
+    # ex.
+    # body0: PUSHC 3\n    # false
+    # JINZ body0\n        # true
+    old_was_last_operation_linked_with_body_or_cond = was_last_operation_linked_with_body_or_cond
+    if code_rgb != transcriptor_dict['BODY'](0)[0] and code_rgb != transcriptor_dict['COND'](0)[0]:
+        was_last_operation_linked_with_body_or_cond = (
+            code_rgb == transcriptor_dict['JMP']
+            or code_rgb == transcriptor_dict['JINZ'])
 
-    # verify if a lambda was used
-    if r == transcriptor_dict['var'](0)[0] and b == transcriptor_dict['var'](0)[2]:
-        return f'var{g}', True
+    print(f'{old_was_last_operation_linked_with_body_or_cond} when {inv_transcriptor_dict[code_rgb] if can_invert(code_rgb) else code_rgb}')
+
+    if code_rgb == transcriptor_dict['VAR'](0)[0]:
+        was_last_operation_a_var = True
+        return ' ', False
+
+    elif was_last_operation_a_var:
+        was_last_operation_a_var = False
+        return f'var{code_rgb}', True
     
-    elif r == transcriptor_dict['num'](0, 0)[0]:
-        neg = '-' if g == 0 else ''
-        return f'{neg}{b}', True
+    elif code_rgb == transcriptor_dict['NUM'](0)[0]:
+        was_last_operation_a_num = True
+        return ' ', False
+
+    elif was_last_operation_a_num:
+        was_last_operation_a_num = False
+        return f'{code_rgb}', True
     
-    elif r == transcriptor_dict['body'](0)[0] and g == transcriptor_dict['body'](0)[1]:
-        double_dot = ':' if not local_was_thing else ''
-        return f'body{b}{double_dot}', local_was_thing
+    elif code_rgb == transcriptor_dict['BODY'](0)[0]:
+        was_last_operation_a_body = True
+        return ' ' if old_was_last_operation_linked_with_body_or_cond else '', False
+    
+    elif was_last_operation_a_body:
+        was_last_operation_a_body = False
+        double_dot = ':' if not old_was_last_operation_linked_with_body_or_cond else ''
+        return f'body{code_rgb}{double_dot} ', old_was_last_operation_linked_with_body_or_cond
 
-    elif r == transcriptor_dict['cond'](0)[0] and g == transcriptor_dict['cond'](0)[1]:
-        double_dot = ':' if not local_was_thing else ''
-        return f'cond{b}{double_dot}', local_was_thing
+    elif code_rgb == transcriptor_dict['COND'](0)[0]:
+        was_last_operation_a_cond = True
+        return ' ' if old_was_last_operation_linked_with_body_or_cond else '', False
+    
+    elif was_last_operation_a_cond:
+        was_last_operation_a_cond = False
+        double_dot = ':' if not old_was_last_operation_linked_with_body_or_cond else ''
+        return f'cond{code_rgb}{double_dot} ', old_was_last_operation_linked_with_body_or_cond
 
 
-    # TODO refactor
+    was_last_operation_a_var = code_rgb == transcriptor_dict['VAR']
+    was_last_operation_a_num = code_rgb == transcriptor_dict['NUM']
+
     should_new_line = not (
-        rgb == transcriptor_dict['PUSHC']
-        or rgb == transcriptor_dict['PUSHV']
-        or rgb == transcriptor_dict['SET']
-        or rgb == transcriptor_dict['JMP']
-        or rgb == transcriptor_dict['JINZ'])
+        code_rgb == transcriptor_dict['PUSHC']
+        or code_rgb == transcriptor_dict['PUSHV']
+        or code_rgb == transcriptor_dict['SET']
+        or code_rgb == transcriptor_dict['JMP']
+        or code_rgb == transcriptor_dict['JINZ'])
     
-    return inv_transcriptor_dict[rgb], should_new_line
-
+    return inv_transcriptor_dict[code_rgb], should_new_line
 
 def run_image(image_array):
     from svm import run
-    code = '' 
-    for row in image_array:
-        for cell in row:
-            cell = tuple(cell)
-            if cell == transcriptor_dict['EMPTY']:
-                break
+    code = ''
 
-            decoded, should_new_line = decode(cell)
-            
-            new_line = '\n' if should_new_line else ' '
-            code += f'{decoded}{new_line}'
+    row_counter = 0
+    column_counter = 0
+    rgb_counter = 0
 
-    #print(code)
+    for _ in range(image_array.shape[0] * image_array.shape[1]):
+        x = []
+        for _ in range(MAX_INSTRUCTIONS_BIT_SIZE):
+            x.append(image_array[row_counter][column_counter][rgb_counter])
+            rgb_counter += 1
+            if rgb_counter == 3:
+                rgb_counter = 0
+                row_counter, column_counter = increment(row_counter, column_counter, image_array)
+        
+        code_as_bit = bit_array_to_int(x)
+        if (code_as_bit == transcriptor_dict['EMPTY']
+        and not was_last_operation_a_num
+        and not was_last_operation_a_var
+        and not was_last_operation_a_cond
+        and not was_last_operation_a_body):
+            break
+
+        decoded, should_new_line = decode(code_as_bit)
+        
+        new_line = '\n' if should_new_line else ''
+        code += f'{decoded}{new_line}'
+
     # TODO: change behavior, instead of writing to file, give string
     opcode_filename = 'output.vm'
     with open(opcode_filename, 'w') as f:
         f.write(code)
     
+    print(code)
+
     run(opcode_filename)
 
     import os
@@ -239,37 +437,43 @@ def run_image(image_array):
     except:
         print('unknown error')    
 
-def print_help():
+def print_help_and_exit():
     s = f"""
     HOW TO USE
 
     first arg must be [{arg_generate} | {arg_run}]
-    second arg must be the path to the file
+    second arg must be the path to the code file
+    third arg must be the path to the source image when generating
 
     ex.
-    python transcriptor.py {arg_generate} my_code.txt
+    python transcriptor.py {arg_generate} my_code.txt image_source.png
     python transcriptor.py {arg_run} my_code_picture.bmp
     ____________________________________________________"""
     print(s)
+    exit(0)
 
 def get_args():
-    return sys.argv[1], sys.argv[2] 
+    return sys.argv[1], sys.argv[2], sys.argv[3] if len(sys.argv) >= 4 else None
 
 if __name__ == '__main__':
     import sys
     if len(sys.argv) < 3:
-        print_help()
-        exit(0)
+        print_help_and_exit()
 
-    mode, file_path = get_args()
+    mode, file_path, source_image_path = get_args()
+
     if mode == arg_generate:
+        if (source_image_path is None):
+            print_help_and_exit()
+
         from parser5 import parse
         import re
         
         print('generating picture from code...\n')
-        x = re.search("^(.+)\..+$", file_path)
+
+        x = re.search("^(.+)\..+$", source_image_path)
         IMAGE_EXTENSION = 'bmp'
-        output = f'{x.group(1)}.{IMAGE_EXTENSION}'
+        output = f'code_{x.group(1)}.{IMAGE_EXTENSION}'
 
         with open(file_path) as f:
             prog = f.read()
@@ -277,15 +481,14 @@ if __name__ == '__main__':
         ast = parse(prog)
 
         transcriptd = ast.transcript()
-        generate_image(transcriptd, output)       
+        generate_image(transcriptd, source_image_path, output)       
         
     elif mode == arg_run:
         import cv2
-
         print('running picture...\n')
         
         image = cv2.imread(file_path)
         run_image(image)
 
     else:
-        print_help()
+        print_help_and_exit()
