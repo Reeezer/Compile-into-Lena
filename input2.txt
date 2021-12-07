@@ -1,8 +1,7 @@
 var0=0;
-if (var0-2) {
+if (var0) {
 	print 150
 };
 else {
 	print 160
-};
-print 10
+}
