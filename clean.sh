@@ -1,4 +1,4 @@
 #!/bin/bash
 rm *.vm
-rm *.bmp
 rm -r __pycache__
+rm pictures/code_*.png
