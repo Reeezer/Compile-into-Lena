@@ -5,7 +5,7 @@ while(aValue2-128)
 	aValue2 = aValue2*2;
 	if (aValue2-8){
 		print 150;
-	};
+	}
 	else {
 		print 10;
 	};

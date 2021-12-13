@@ -39,11 +39,11 @@ def p_while_structure(p):
 
 def p_if_structure(p):
 	"""structure : IF expression '{' programme '}'
-		| IF expression '{' programme '}' ';' ELSE '{' programme '}'"""
+		| IF expression '{' programme '}' ELSE '{' programme '}'"""
 	if len(p) == 6:
 		p[0] = AST.IfNode((p[2], p[4]))
-	elif len(p) == 11:
-		p[0] = AST.IfElseNode((p[2], p[4], p[9]))
+	elif len(p) == 10:
+		p[0] = AST.IfElseNode((p[2], p[4], p[8]))
 
 def p_function_name(p):
 	"""function_name : IDENTIFIER '(' ')'"""
@@ -87,6 +87,8 @@ def p_error(p):
 
 precedence = (
 	('left', 'ADD_OP'),
+	('left', 'MOD'),
+	('left', 'POW'),
 	('left', 'MUL_OP'),
 	('right', 'UMINUS'),  
 )
