@@ -1,4 +1,5 @@
 var0=0;
+var1=0;
 if (var0) {
 	print 150;
 }
@@ -7,6 +8,10 @@ else {
 };
 
 function something() {
+	print 10;
+};
+
+function something2() {
 	print 10;
 };
 
