@@ -56,7 +56,7 @@ class Node:
                     edge.set_label(str(i))
                 dot.add_edge(edge)
                 #Workaround for a bug in pydot 1.0.2 on Windows:
-                dot.set_graphviz_executables({'dot': r'C:\Program Files (x86)\Graphviz2.38\bin\dot.exe'})
+                #dot.set_graphviz_executables({'dot': r'C:\Program Files (x86)\Graphviz2.38\bin\dot.exe'})
             return dot
         
     def threadTree(self, graph, seen = None, col=0):
@@ -130,12 +130,18 @@ class IfNode(Node):
 
 class IfElseNode(Node):
     type = 'if else'
+
+class FunctionDeclarationNode(Node):
+    type = 'function declaration'
+
+class FunctionCallNode(Node):
+    type = 'function call'
     
 class EntryNode(Node):
     type = 'ENTRY'
     def __init__(self):
         Node.__init__(self, None)
-    
+
 def addToClass(cls):
     ''' D�corateur permettant d'ajouter la fonction d�cor�e en tant que m�thode
     � une classe.

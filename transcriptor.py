@@ -26,6 +26,7 @@ transcriptor_dict = {
     'BODY' : lambda x: (80, 140, x),
     'COND' : lambda x: (200, 0, x),
     'ENDIF' : lambda x: (180, 150, x),
+    'FUNC' :  lambda x: (210, 80, x),
     'MOD' : (255, 43, 178),
     'POW' : (146, 255, 1),
 }
@@ -50,6 +51,7 @@ operations = {
 }
 
 vars = {}
+func = {}
 
 def var_to_rgb(var):
     if var in vars.keys():
@@ -217,6 +219,17 @@ def transcript(self):
 
     return ret
 
+@addToClass(AST.FunctionDeclarationNode)
+def transcript(self):
+    func[str(self.children[0])] = self.children[1] # Because we need to increase the flag on each call
+    return ""
+
+@addToClass(AST.FunctionCallNode)
+def transcript(self):
+    ret = func[str(self.children[0])].transcript()
+    return ret
+
+transcript.func_flag = 0
 transcript.if_flag = 0
 transcript.cond_flag = 0
 transcript.var_counter = 0

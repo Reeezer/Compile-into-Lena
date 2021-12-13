@@ -27,7 +27,6 @@ def p_programme_recursive(p):
 def p_statement(p):
 	''' statement : assignation
 		| structure'''
-	
 	p[0] = p[1]
 
 def p_statement_print(p):
@@ -45,6 +44,18 @@ def p_if_structure(p):
 		p[0] = AST.IfNode((p[2], p[4]))
 	elif len(p) == 11:
 		p[0] = AST.IfElseNode((p[2], p[4], p[9]))
+
+def p_function_name(p):
+	"""function_name : IDENTIFIER '(' ')'"""
+	p[0] = AST.TokenNode(p[1])
+
+def p_function_declaration(p):
+	"""structure : FUNCTION function_name '{' programme '}'"""
+	p[0] = AST.FunctionDeclarationNode((p[2], p[4]))
+
+def p_function_call(p):
+	"""structure : function_name"""
+	p[0] = AST.FunctionCallNode(p[1])
 
 def p_expression_op(p):
 	'''expression : expression ADD_OP expression
@@ -71,13 +82,13 @@ def p_assign(p):
 	p[0] = AST.AssignNode([AST.TokenNode(p[1]),p[3]])
 
 def p_error(p):
-    print ("Syntax error in line %d" % p.lineno)
-    yacc.errok()
+	print ("Syntax error in line %d" % p.lineno)
+	yacc.errok()
 
 precedence = (
-    ('left', 'ADD_OP'),
-    ('left', 'MUL_OP'),
-    ('right', 'UMINUS'),  
+	('left', 'ADD_OP'),
+	('left', 'MUL_OP'),
+	('right', 'UMINUS'),  
 )
 
 yacc.yacc(outputdir='generated')
