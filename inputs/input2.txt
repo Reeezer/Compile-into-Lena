@@ -11,6 +11,10 @@ function something() {
 	print 10;
 };
 
+function something() {
+	print 100;
+};
+
 function something2() {
 	print 10;
 };

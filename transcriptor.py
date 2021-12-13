@@ -63,6 +63,7 @@ operations = {
 
 func = {}
 func_unused = set()
+func_overrides = set()
 vars = {}
 vars_unused = set()
 
@@ -260,6 +261,8 @@ def transcript(self):
 @addToClass(AST.FunctionDeclarationNode)
 def transcript(self):
     func_name = str(self.children[0])[:-1]
+    if func_name in func:
+        func_overrides.add(func_name)
     func[func_name] = self.children[1] # Because we need to increase the flag on each call
     func_unused.add(func_name)
     return ""
@@ -562,17 +565,17 @@ def run_image(image_array):
     except:
         print('unknown error')    
 
+def warning(container: set, message: str):
+    if len(container) > 0:
+        print(f"*** WARNING: {message}:")
+        for x in container:
+            print(f"             - {x}")
+        print()
+
 def warnings():
-    if len(func_unused) > 0:
-        print("*** WARNING: Those functions are not used:")
-        for func_name in func_unused:
-            print(f"             - {func_name}")
-        print()
-    if len(vars_unused) > 0:
-        print("*** WARNING: Those variables are not used:")
-        for var in vars_unused:
-            print(f"             - {var}")
-        print()
+    warning(func_unused, 'Those functions are not used')
+    warning(vars_unused, 'Those variables are not used')
+    warning(func_overrides, 'There has been an overrides by those functions')
 
 def print_help_and_exit():
     s = f"""
