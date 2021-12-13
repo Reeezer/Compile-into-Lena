@@ -1,13 +1,17 @@
 var0=0;
-if (var0-2) {
-	print 150
+var1=13;
+
+if (var0) {
+	print 150;
+	var1=150;
 };
 else {
-	print 160
+	print 160;
+	var1= 160;
 };
 
 function something() {
-	print 10
+	print 10;
 };
 
 something();
@@ -15,4 +19,4 @@ something();
 something();
 something();
 
-print 11
+print var1^50;

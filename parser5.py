@@ -17,7 +17,7 @@ operations = {
 vars = {}
 
 def p_programme_statement(p):
-	''' programme : statement'''
+	''' programme : statement ';' '''
 	p[0] = AST.ProgramNode(p[1])
 
 def p_programme_recursive(p):
