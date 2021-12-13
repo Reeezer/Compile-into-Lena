@@ -578,7 +578,8 @@ if __name__ == '__main__':
         
         print('generating picture from code...\n')
 
-        x = re.search("^(.+)\..+$", source_image_path)
+        import os
+        x = re.search("^(.+)\..+$", os.path.basename(source_image_path))
         IMAGE_EXTENSION = 'png'
         output = f'code_{x.group(1)}.{IMAGE_EXTENSION}'
 
