@@ -51,6 +51,11 @@ def t_CHAR(t):
 	r'\'[\w\s]\''
 	t.value = t.value[1:-1] # remove the ' '
 	return t
+	
+def t_ILLEGAL_CHAR(t):
+	r'\'[\w\s]+\''
+	print(f'error, character with multiple chars: {t.value}')
+	exit(-1)
 
 def t_STRING(t):
 	r'"[\w\s]+"'
