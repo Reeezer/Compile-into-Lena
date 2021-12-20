@@ -54,7 +54,7 @@ def t_CHAR(t):
 	
 def t_ILLEGAL_CHAR(t):
 	r'\'[\w\s]+\''
-	print(f'error, character with multiple chars: {t.value}')
+	print(f'ERROR: character with multiple chars: {t.value}')
 	exit(-1)
 
 def t_STRING(t):

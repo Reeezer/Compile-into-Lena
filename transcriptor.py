@@ -78,6 +78,9 @@ MAX_VAR_BIT_SIZE = 8
 # negatives computed as 0 minus positive (-x = 0-abs(x))
 MAX_NUM_BIT_SIZE = 8
 
+# means the string can have max 4095 characters (2**12 -1), -1 because of the empty string ""
+MAX_STRING_LENGTH_BIT_SIZE = 12
+
 MAX_CONDITIONS_BIT_SIZE = 8
 
 MAX_BODIES_BIT_SIZE = 8
@@ -100,16 +103,10 @@ func_overrides = set()
 vars = {}
 vars_unused = set()
 
-def verify_limits(value, limit, error, is_unsigned):
-    if is_unsigned:
-        p = pow(2, limit)
-        if value > p:
-            raise Exception(f'{error}\ncurrent: {value}, max: {p}')
-    else:
-        max = pow(2, limit-1) -1
-        min = -pow(2, limit-1)
-        if value > max or value < min:
-            raise Exception(f'{error}\ncurrent: {value}, min: {min}, max: {max}')
+def verify_limits(value, limit, error):
+    p = pow(2, limit) -1
+    if value > p:
+        raise Exception(f'{error}\ncurrent: {value}, max: {p}')
 
 def verify_chars_are_ascii(s):
     for c in s:
@@ -124,7 +121,7 @@ def var_to_rgb(var):
         if var in vars_unused:
             vars_unused.remove(var)
         return vars[var]
-    verify_limits(var_to_rgb.var_name_counter, MAX_VAR_BIT_SIZE, 'too much var', True)
+    verify_limits(var_to_rgb.var_name_counter, MAX_VAR_BIT_SIZE, 'too much var')
     x = transcriptor_dict['VAR'](var_to_rgb.var_name_counter)
     var_to_rgb.var_name_counter += 1
     vars[var] = x
@@ -138,14 +135,14 @@ POSITIVE = 1
 def num_to_rgb(num):
     # use False if numbers are unsigned, actually -127 is computed as 0- (+127) so only positive are concidered for now
     # verify_limits(num, MAX_NUM_BIT_SIZE, 'number too big or too short', False)
-    verify_limits(num, MAX_NUM_BIT_SIZE, 'number too big or too short', True)
+    verify_limits(num, MAX_NUM_BIT_SIZE, 'number too big or too short')
     x = int(num)
     transcript.const_counter += 1
     transcript.instructions_counter += 1
     return transcriptor_dict['NUM'](x)
 
 def body_to_rgb():
-    verify_limits(body_to_rgb.body_name_counter, MAX_BODIES_BIT_SIZE, 'too much bodies', True)
+    verify_limits(body_to_rgb.body_name_counter, MAX_BODIES_BIT_SIZE, 'too much bodies')
     transcript.body_counter += 2 # each time, two are used
     transcript.instructions_counter += 2 # each time, two are used
     ret = transcriptor_dict['BODY'](body_to_rgb.body_name_counter)
@@ -153,7 +150,7 @@ def body_to_rgb():
     return ret
 
 def cond_to_rgb():
-    verify_limits(cond_to_rgb.cond_name_counter, MAX_CONDITIONS_BIT_SIZE, 'too much conditions', True)
+    verify_limits(cond_to_rgb.cond_name_counter, MAX_CONDITIONS_BIT_SIZE, 'too much conditions')
     transcript.cond_counter += 2 # each time, two are used
     transcript.instructions_counter += 2 # each time, two are used
     ret = transcriptor_dict['COND'](cond_to_rgb.cond_name_counter)
@@ -162,7 +159,9 @@ def cond_to_rgb():
 
 def string_to_rgb(s):
     verify_chars_are_ascii(s)
+    verify_limits(len(s), MAX_STRING_LENGTH_BIT_SIZE, 'string too long')
     transcript.instructions_counter += 1
+    transcript.string_counter += 1
     transcript.char_counter += len(s)
     ret = transcriptor_dict['STR'](s)
     return ret
@@ -351,6 +350,7 @@ transcript.instructions_counter = 0
 transcript.const_counter = 0
 transcript.body_counter = 0
 transcript.cond_counter = 0
+transcript.string_counter = 0
 transcript.char_counter = 0
 
 arg_generate = '-g'
@@ -392,6 +392,9 @@ def increment(row, column, array):
     if column >= array.shape[0]:
         column = 0
         row += 1
+    if row >= array.shape[1]:
+        print('ERROR: code out of range of picture size')
+        exit(-1)
     return row, column
 
 def controle_size(image):
@@ -401,8 +404,13 @@ def controle_size(image):
     + transcript.const_counter * MAX_NUM_BIT_SIZE
     + transcript.body_counter  * MAX_BODIES_BIT_SIZE
     + transcript.cond_counter * MAX_CONDITIONS_BIT_SIZE
+    + transcript.string_counter * MAX_STRING_LENGTH_BIT_SIZE
     + transcript.char_counter * CHAR_BIT_SIZE)
 
+    # how much pixels are needed
+    required_size += MAX_INSTRUCTIONS_BIT_SIZE # add the EMPTY operator at the end
+    # print(f'required size {required_size}')
+    
     if DEBUG:
         print('\nhow much bits per thing:')
         print(f'instr nb {transcript.instructions_counter}\t=> {transcript.instructions_counter * MAX_INSTRUCTIONS_BIT_SIZE}')
@@ -410,12 +418,11 @@ def controle_size(image):
         print(f'const nb {transcript.const_counter}\t=> {transcript.const_counter * MAX_NUM_BIT_SIZE}')
         print(f'body nb {transcript.body_counter}\t=> {transcript.body_counter * MAX_BODIES_BIT_SIZE}')
         print(f'cond nb {transcript.cond_counter}\t=> {transcript.cond_counter * MAX_CONDITIONS_BIT_SIZE}')
+        print(f'str nb {transcript.string_counter}\t=> {transcript.string_counter * MAX_STRING_LENGTH_BIT_SIZE} (for the length indicator)')
         print(f'char nb {transcript.char_counter}\t=> {transcript.char_counter * CHAR_BIT_SIZE}')
-        print(f'empty instr 1\t=> {MAX_INSTRUCTIONS_BIT_SIZE}\n')
+        print(f'eof inst nb 1\t=> {MAX_INSTRUCTIONS_BIT_SIZE}')
+        print(f'\nfor a total of\t=> {required_size}\n')
 
-    # how much pixels are needed
-    required_size += MAX_INSTRUCTIONS_BIT_SIZE # add the EMPTY operator at the end
-    # print(f'required size {required_size}')
     required_size = int(required_size / 3 + 1)
 
     image_size = image.shape[0] * image.shape[1]
@@ -483,7 +490,7 @@ def generate_image(s, source_image_path, output_image_path):
             if value is not None:
                 if was_a_string:
                     print(f'{value}\tlen of string')
-                    print(f'\t{split_into_bits(value, MAX_NUM_BIT_SIZE)}')
+                    print(f'\t{split_into_bits(value, MAX_STRING_LENGTH_BIT_SIZE)}')
                     print(f'{string}\tstring')
                     print(f'\t{split_into_bits(string, CHAR_BIT_SIZE*value)}')
                 else:
@@ -495,7 +502,7 @@ def generate_image(s, source_image_path, output_image_path):
         # add var id or num value
         if value is not None:
                 if was_a_string:
-                    for bit in split_into_bits(value, MAX_NUM_BIT_SIZE):
+                    for bit in split_into_bits(value, MAX_STRING_LENGTH_BIT_SIZE):
                         row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
                     for bit in split_into_bits(string, CHAR_BIT_SIZE*value):
                         row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
@@ -519,7 +526,6 @@ def bit_array_to_int(arr):
     x = 0
     for i in range(len(arr)):
         x += arr[i] * pow(2, i)
-
     return x
     
 
@@ -564,45 +570,25 @@ def decode(code_rgb):
             code_rgb == transcriptor_dict['JMP']
             or code_rgb == transcriptor_dict['JINZ'])
 
-
-    if code_rgb == transcriptor_dict['VAR'](0)[0]:
-        was_last_instruction_var = True
-        return ' ', False
-
-    elif was_last_instruction_var:
+   
+    if was_last_instruction_var:
         was_last_instruction_var = False
         return f'var{code_rgb}', True
-    
-    elif code_rgb == transcriptor_dict['NUM'](0)[0]:
-        was_last_instruction_num = True
-        return ' ', False
-
+        
     elif was_last_instruction_num:
         was_last_instruction_num = False
         return f'{code_rgb}', True
-    
-    elif code_rgb == transcriptor_dict['BODY'](0)[0]:
-        was_last_instruction_body = True
-        return ' ' if old_was_last_operation_linked_with_body_or_cond else '', False
-    
+        
     elif was_last_instruction_body:
         was_last_instruction_body = False
         double_dot = ':' if not old_was_last_operation_linked_with_body_or_cond else ''
         return f'body{code_rgb}{double_dot} ', old_was_last_operation_linked_with_body_or_cond
-
-    elif code_rgb == transcriptor_dict['COND'](0)[0]:
-        was_last_instruction_cond = True
-        return ' ' if old_was_last_operation_linked_with_body_or_cond else '', False
-    
+        
     elif was_last_instruction_cond:
         was_last_instruction_cond = False
         double_dot = ':' if not old_was_last_operation_linked_with_body_or_cond else ''
         return f'cond{code_rgb}{double_dot} ', old_was_last_operation_linked_with_body_or_cond
 
-    elif code_rgb == transcriptor_dict['STR']('')[0]:
-        was_last_instruction_str_part_1 = True
-        return '', False
-    
     elif was_last_instruction_str_part_1:
         was_last_instruction_str_part_1 = False
         was_last_instruction_str_part_2 = True
@@ -612,6 +598,26 @@ def decode(code_rgb):
         was_last_instruction_str_part_2 = False
         return f'{code_rgb}', True
 
+
+    elif code_rgb == transcriptor_dict['VAR'](0)[0]:
+        was_last_instruction_var = True
+        return ' ', False
+    
+    elif code_rgb == transcriptor_dict['NUM'](0)[0]:
+        was_last_instruction_num = True
+        return ' ', False
+    
+    elif code_rgb == transcriptor_dict['BODY'](0)[0]:
+        was_last_instruction_body = True
+        return ' ' if old_was_last_operation_linked_with_body_or_cond else '', False
+
+    elif code_rgb == transcriptor_dict['COND'](0)[0]:
+        was_last_instruction_cond = True
+        return ' ' if old_was_last_operation_linked_with_body_or_cond else '', False
+
+    elif code_rgb == transcriptor_dict['STR']('')[0]:
+        was_last_instruction_str_part_1 = True
+        return '', False
 
     should_new_line = not (
            code_rgb == transcriptor_dict['PUSHC']
@@ -677,8 +683,9 @@ def run_image(image_array):
         elif was_last_instruction_body:
             size_to_read = MAX_BODIES_BIT_SIZE
         elif was_last_instruction_str_part_1:
-            size_to_read = MAX_NUM_BIT_SIZE
+            size_to_read = MAX_STRING_LENGTH_BIT_SIZE
         elif was_last_instruction_str_part_2:
+            print(f'charbit is {CHAR_BIT_SIZE}, code_as_bit is {code_as_bit}')
             size_to_read = CHAR_BIT_SIZE*int(code_as_bit)
         else:
             size_to_read = MAX_INSTRUCTIONS_BIT_SIZE
