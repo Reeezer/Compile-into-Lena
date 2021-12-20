@@ -67,8 +67,10 @@ func_unused = set()
 vars = {}
 vars_unused = set()
 
-var_scope = {}
-func_vars = {}
+var_scope = {} # dict of dict: access to function's scope, and then variable's scope (in the given function)
+var_scope['main'] = {}
+current_scope = {} # dict: access to current scope of a given function
+current_scope['main'] = 0
 
 def verify_limits(value, limit, error, is_unsigned):
     if is_unsigned:
@@ -139,13 +141,14 @@ def transcript(self):
 @addToClass(AST.TokenNode)
 def transcript(self):
     if isinstance(self.tok, str):
+        current_func_name = transcript.current_func
         var_name = self.tok
-        if transcript.current_func is not None: # Actually in a function's scope
-            var_name = f"{transcript.current_func}_{var_name}"
-            if transcript.current_func not in func_vars or var_name not in func_vars[transcript.current_func]:
-                error_exit(f"Scope is not being respected for variable '{var_name}' in function {transcript.current_func}")
-        elif var_scope[var_name] > transcript.scope or (var_scope[var_name] == -np.inf and transcript.scope != -np.inf):
-            error_exit(f"Scope is not being respected for variable '{var_name}'")
+        
+        if current_func_name != 'main': # Actually in a function's scope
+            var_name = f"{current_func_name}_{var_name}"
+
+        if var_name not in var_scope[current_func_name] or var_scope[current_func_name][var_name] > current_scope[current_func_name]:
+            error_exit(f"Scope is not being respected for variable '{var_name}' in function '{current_func_name}'")
 
         x = transcriptor_dict['PUSHV']
         v = var_to_rgb(var_name)
@@ -175,15 +178,15 @@ def transcript(self):
 @addToClass(AST.AssignNode)
 def transcript(self):
     ret = self.children[1].transcript()
-
+    
+    current_func_name = transcript.current_func
     var_name = self.children[0].tok
-    if transcript.current_func is not None: # Actually in a function's scope
-        var_name = f"{transcript.current_func}_{var_name}"
-        if transcript.current_func not in func_vars:
-            func_vars[transcript.current_func] = set()
-        func_vars[transcript.current_func].add(var_name)
-    elif var_name not in var_scope or var_scope[var_name] > transcript.scope:
-        var_scope[var_name] = transcript.scope
+
+    if current_func_name != 'main': # Actually in a function's scope
+        var_name = f"{current_func_name}_{var_name}"
+
+    if var_name not in var_scope[current_func_name] or var_scope[current_func_name][var_name] > current_scope[current_func_name]:
+        var_scope[current_func_name][var_name] = current_scope[current_func_name]
 
     x = transcriptor_dict['SET']
     v = var_to_rgb(var_name)
@@ -210,7 +213,7 @@ def transcript(self):
 
 @addToClass(AST.WhileNode)
 def transcript(self):
-    transcript.scope += 1
+    current_scope[transcript.current_func] += 1
 
     jmp = transcriptor_dict['JMP']
     cond = cond_to_rgb()
@@ -225,7 +228,7 @@ def transcript(self):
     ret += self.children[0].transcript()
     ret += f"{jinz}\n{body}\n"
 
-    transcript.scope -= 1
+    current_scope[transcript.current_func] -= 1
 
     transcript.instructions_counter += 2 # one jump, one jinz
 
@@ -233,7 +236,7 @@ def transcript(self):
 
 @addToClass(AST.IfNode)
 def transcript(self):
-    transcript.scope += 1
+    current_scope[transcript.current_func] += 1
     
     jmp = transcriptor_dict['JMP']
     jinz = transcriptor_dict['JINZ']
@@ -252,7 +255,7 @@ def transcript(self):
     
     ret += f"{endif}\n"
 
-    transcript.scope -= 1
+    current_scope[transcript.current_func] -= 1
 
     transcript.instructions_counter += 3 # two jump, one jinz
 
@@ -260,7 +263,7 @@ def transcript(self):
 
 @addToClass(AST.IfElseNode)
 def transcript(self):
-    transcript.scope += 1
+    current_scope[transcript.current_func] += 1
    
     jmp = transcriptor_dict['JMP']
     jinz = transcriptor_dict['JINZ']
@@ -281,7 +284,7 @@ def transcript(self):
     
     ret += f"{endif}\n"
 
-    transcript.scope -= 1
+    current_scope[transcript.current_func] -= 1
 
     transcript.instructions_counter += 3 # two jump, one jinz
 
@@ -292,10 +295,13 @@ def transcript(self):
     func_name = str(self.children[0])[:-1]
     func_name = func_name[1:-1]
 
-    if transcript.scope > 0:
+    if current_scope['main'] > 0:
         error_exit(f"Function {func_name} has to be declared as global")
     if func_name in func:
         error_exit(f"Function {func_name} can't be overrided")
+    
+    current_scope[func_name] = 0
+    var_scope[func_name] = {}
     
     func[func_name] = self.children[1] # Because we need to increase the flag on each call, then we store the function declaration
     
@@ -305,17 +311,16 @@ def transcript(self):
 
 @addToClass(AST.FunctionCallNode)
 def transcript(self):
-    temp_scope = transcript.scope
-    transcript.scope = -np.inf
-
     func_name = str(self.children[0])[:-1]
     func_name = func_name[1:-1]
+
     transcript.current_func = func_name
+    current_scope[func_name] += 1
 
     ret = func[func_name].transcript()
     
-    transcript.scope = temp_scope
-    transcript.current_func = None
+    current_scope[func_name] -= 1
+    transcript.current_func = 'main'
 
     if func_name in func_unused:
         func_unused.remove(func_name)
@@ -327,8 +332,7 @@ transcript.instructions_counter = 0
 transcript.const_counter = 0
 transcript.body_counter = 0
 transcript.cond_counter = 0
-transcript.scope = 0
-transcript.current_func = None
+transcript.current_func = 'main'
 
 arg_generate = '-g'
 arg_run = '-r'
