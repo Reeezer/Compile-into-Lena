@@ -94,6 +94,11 @@ operations = {
     '^': lambda x,y: f"{x}{y}{transcriptor_dict['POW']}\n",
 }
 
+func = {}
+func_unused = set()
+func_overrides = set()
+vars = {}
+vars_unused = set()
 
 def verify_limits(value, limit, error, is_unsigned):
     if is_unsigned:
@@ -112,16 +117,18 @@ def verify_chars_are_ascii(s):
             raise Exception(f'{c} is not an ASCII character\nin string {s}')
 
 
-vars = {}
 def var_to_rgb(var):
     if var in vars.keys():
         transcript.var_counter += 1
         transcript.instructions_counter += 1
+        if var in vars_unused:
+            vars_unused.remove(var)
         return vars[var]
     verify_limits(var_to_rgb.var_name_counter, MAX_VAR_BIT_SIZE, 'too much var', True)
     x = transcriptor_dict['VAR'](var_to_rgb.var_name_counter)
     var_to_rgb.var_name_counter += 1
     vars[var] = x
+    vars_unused.add(var)
     transcript.var_counter += 1
     transcript.instructions_counter += 1
     return x
@@ -322,13 +329,28 @@ def transcript(self):
 
     return ret
 
+@addToClass(AST.FunctionDeclarationNode)
+def transcript(self):
+    func_name = str(self.children[0])[:-1]
+    if func_name in func:
+        func_overrides.add(func_name)
+    func[func_name] = self.children[1] # Because we need to increase the flag on each call
+    func_unused.add(func_name)
+    return ""
+
+@addToClass(AST.FunctionCallNode)
+def transcript(self):
+    func_name = str(self.children[0])[:-1]
+    ret = func[func_name].transcript()
+    if func_name in func_unused:
+        func_unused.remove(func_name)
+    return ret
 
 transcript.var_counter = 0
 transcript.instructions_counter = 0
 transcript.const_counter = 0
 transcript.body_counter = 0
 transcript.cond_counter = 0
-transcript.if_counter = 0
 transcript.char_counter = 0
 
 arg_generate = '-g'
@@ -664,21 +686,26 @@ def run_image(image_array):
         new_line = '\n' if should_new_line else ''
         code += f'{decoded}{new_line}'
 
-    # TODO: change behavior, instead of writing to file, give string
-    opcode_filename = 'output.vm'
-    with open(opcode_filename, 'w') as f:
-        f.write(code)
-    
-    # print(code)
 
-    run(opcode_filename)
+    if DEBUG:
+        opcode_filename = 'output.vm'
+        with open(opcode_filename, 'w') as f:
+            f.write(code)
+        print(code)
+    run(code)
 
-    if not DEBUG:
-        import os
-        try:
-            os.remove(opcode_filename)
-        except:
-            print('unknown error')    
+def warning(container: set, message: str):
+    if len(container) > 0:
+        print(f"*** WARNING: {message}:")
+        for x in container:
+            print(f"             - {x}")
+        print() 
+
+def warnings():
+    warning(func_unused, 'Those functions are not used')
+    warning(vars_unused, 'Those variables are not used')
+    warning(func_overrides, 'There has been an overrides by those functions')
+
 
 def print_help_and_exit():
     s = f"""transcriptor.py {{MODE}} {{SOURCE}} {{IMAGE_SOURCE}} --debug
@@ -742,6 +769,7 @@ if __name__ == '__main__':
         ast = parse(prog)
 
         transcriptd = ast.transcript()
+        warnings()
         generate_image(transcriptd, source_image_path, output)       
         
     elif mode == arg_run:

@@ -4,7 +4,8 @@ reserved_words = (
 	'while',
 	'print',
 	'if',
-	'else'
+	'else',
+	'function'
 )
 
 tokens = (
@@ -83,4 +84,4 @@ if __name__ == "__main__":
 	while 1:
 		tok = lex.token()
 		if not tok: break
-		print ("line %d: %s(%s)" % (tok.lineno, tok.type, tok.value))
+		print ("line %d: %s (%s)" % (tok.lineno, tok.type, tok.value))

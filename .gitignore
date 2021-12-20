@@ -1,9 +1,12 @@
 
 # program generated
 
-generated/
+generated/*
 .idea/
 *.vm
+*.bmp
+*.pdf
+.vscode
 code_*.png
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,visualstudiocode

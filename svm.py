@@ -53,8 +53,13 @@ The format of svm's "bytecode" is the following:
     SVM v0.1 - Matthieu Amiguet/HE-Arc, 2008
 """
 
-def parse(filename):
-    code = [line.split(':') for line in open(filename)]
+def parse(text):
+    code = text.split('\n')
+    
+    while (code[-1] == ''):
+        code = code[:-1]
+    
+    code = [line.split(':') for line in code]
     adresses = {}
 
     for num, line in enumerate(code):

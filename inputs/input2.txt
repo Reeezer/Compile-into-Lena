@@ -1,7 +1,31 @@
 var0=0;
+var1=0;
+var2=0;
+var3=0;
 if (var0) {
-	print 150
+	print 150;
+} else {
+	print 160;
 };
-else {
-	print 160
-}
+
+function something() {
+	print 10;
+};
+
+function something() {
+	print 100;
+};
+
+function something2() {
+	print 10;
+};
+function something3() {
+	print 10;
+};
+function something4() {
+	print 10;
+};
+
+something();
+
+print 11;
