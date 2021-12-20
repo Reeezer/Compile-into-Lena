@@ -550,20 +550,7 @@ def run_image(image_array):
         new_line = '\n' if should_new_line else ''
         code += f'{decoded}{new_line}'
 
-    # TODO: change behavior, instead of writing to file, give string
-    opcode_filename = 'output.vm'
-    with open(opcode_filename, 'w') as f:
-        f.write(code)
-    
-    #print(code)
-
-    run(opcode_filename)
-
-    import os
-    try:
-        os.remove(opcode_filename)
-    except:
-        print('unknown error')    
+    run(code)
 
 def warning(container: set, message: str):
     if len(container) > 0:
