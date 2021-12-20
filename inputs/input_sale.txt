@@ -1,13 +1,22 @@
-aValue1=5%3;
+aValue1=6+5%3;
+print aValue1;
 aValue2=aValue1^2;
 while(aValue2-128)
 {
 	aValue2 = aValue2*2;
 	if (aValue2-8){
 		print 150;
+		aValue3 = 10;
 	} else {
 		print 10;
 	};
 	print aValue2;
 };
+
+function something() {
+	print 10;
+};
+
+something();
+
 print aValue2;

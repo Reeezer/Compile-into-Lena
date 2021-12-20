@@ -2,7 +2,8 @@ import AST
 from AST import addToClass
 from functools import reduce
 from ast import literal_eval as string_to_tuple
-from math import log
+from math import inf, log
+import numpy as np
 
 transcriptor_dict = {
     'EMPTY': 0,
@@ -66,6 +67,8 @@ func_unused = set()
 func_overrides = set()
 vars = {}
 vars_unused = set()
+
+var_scope = dict()
 
 def verify_limits(value, limit, error, is_unsigned):
     if is_unsigned:
@@ -136,6 +139,10 @@ def transcript(self):
 @addToClass(AST.TokenNode)
 def transcript(self):
     if isinstance(self.tok, str):
+        if var_scope[self.tok] > transcript.scope:
+            print(f"*** Scope is not being respected for var '{self.tok}'\n*** Exit code parsing")
+            exit(-1)
+
         x = transcriptor_dict['PUSHV']
         v = var_to_rgb(self.tok)
         # transcript.var_counter += 1 added in var_to_rgb
@@ -168,6 +175,9 @@ def transcript(self):
     x = transcriptor_dict['SET']
     v = var_to_rgb(self.children[0].tok)
 
+    if self.children[0].tok not in var_scope or (self.children[0].tok in var_scope and var_scope[self.children[0].tok] > transcript.scope):
+        var_scope[self.children[0].tok] = transcript.scope
+
     # transcript.var_counter += 1 added in var_to_rgb
     transcript.instructions_counter += 1
 
@@ -188,6 +198,7 @@ def transcript(self):
 
 @addToClass(AST.WhileNode)
 def transcript(self):
+    transcript.scope += 1
 
     jmp = transcriptor_dict['JMP']
     cond = cond_to_rgb()
@@ -202,6 +213,7 @@ def transcript(self):
     ret += self.children[0].transcript()
     ret += f"{jinz}\n{body}\n"
 
+    transcript.scope -= 1
 
     transcript.instructions_counter += 2 # one jump, one jinz
 
@@ -210,6 +222,7 @@ def transcript(self):
 
 @addToClass(AST.IfNode)
 def transcript(self):
+    transcript.scope += 1
     
     jmp = transcriptor_dict['JMP']
     jinz = transcriptor_dict['JINZ']
@@ -228,12 +241,15 @@ def transcript(self):
     
     ret += f"{endif}\n"
 
+    transcript.scope -= 1
+
     transcript.instructions_counter += 3 # two jump, one jinz
 
     return ret
 
 @addToClass(AST.IfElseNode)
 def transcript(self):
+    transcript.scope += 1
    
     jmp = transcriptor_dict['JMP']
     jinz = transcriptor_dict['JINZ']
@@ -254,6 +270,8 @@ def transcript(self):
     
     ret += f"{endif}\n"
 
+    transcript.scope -= 1
+
     transcript.instructions_counter += 3 # two jump, one jinz
 
     return ret
@@ -261,18 +279,30 @@ def transcript(self):
 @addToClass(AST.FunctionDeclarationNode)
 def transcript(self):
     func_name = str(self.children[0])[:-1]
+    
     if func_name in func:
         func_overrides.add(func_name)
+    
     func[func_name] = self.children[1] # Because we need to increase the flag on each call
+    
     func_unused.add(func_name)
+    
     return ""
 
 @addToClass(AST.FunctionCallNode)
 def transcript(self):
+    temp_scope = transcript.scope
+    transcript.scope = np.inf
+
     func_name = str(self.children[0])[:-1]
+    
     ret = func[func_name].transcript()
+    
+    transcript.scope = temp_scope
+
     if func_name in func_unused:
         func_unused.remove(func_name)
+    
     return ret
 
 transcript.var_counter = 0
@@ -280,6 +310,7 @@ transcript.instructions_counter = 0
 transcript.const_counter = 0
 transcript.body_counter = 0
 transcript.cond_counter = 0
+transcript.scope = 0
 
 arg_generate = '-g'
 arg_run = '-r'
@@ -562,7 +593,7 @@ def warning(container: set, message: str):
 def warnings():
     warning(func_unused, 'Those functions are not used')
     warning(vars_unused, 'Those variables are not used')
-    warning(func_overrides, 'There has been an overrides by those functions')
+    warning(func_overrides, 'There has been overrides by those functions')
 
 def print_help_and_exit():
     s = f"""
