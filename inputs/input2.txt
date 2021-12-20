@@ -2,6 +2,7 @@ var0=0;
 var1=0;
 
 function something() {
+	var1=15;
 	print var1;
 };
 

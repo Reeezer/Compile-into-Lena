@@ -64,7 +64,6 @@ operations = {
 
 func = {}
 func_unused = set()
-func_overrides = set()
 vars = {}
 vars_unused = set()
 
@@ -140,14 +139,16 @@ def transcript(self):
 @addToClass(AST.TokenNode)
 def transcript(self):
     if isinstance(self.tok, str):
+        var_name = self.tok
         if transcript.current_func is not None: # Actually in a function's scope
-            if transcript.current_func not in func_vars or self.tok not in func_vars[transcript.current_func]:
-                error_exit(f"Scope is not being respected for var '{self.tok}' in function {transcript.current_func}")
-        elif var_scope[self.tok] > transcript.scope or (var_scope[self.tok] == -np.inf and transcript.scope != -np.inf):
-            error_exit(f"Scope is not being respected for var '{self.tok}'")
+            var_name = f"{transcript.current_func}_{var_name}"
+            if transcript.current_func not in func_vars or var_name not in func_vars[transcript.current_func]:
+                error_exit(f"Scope is not being respected for variable '{var_name}' in function {transcript.current_func}")
+        elif var_scope[var_name] > transcript.scope or (var_scope[var_name] == -np.inf and transcript.scope != -np.inf):
+            error_exit(f"Scope is not being respected for variable '{var_name}'")
 
         x = transcriptor_dict['PUSHV']
-        v = var_to_rgb(self.tok)
+        v = var_to_rgb(var_name)
         # transcript.var_counter += 1 added in var_to_rgb
     else:
         x = transcriptor_dict['PUSHC']
@@ -175,19 +176,19 @@ def transcript(self):
 def transcript(self):
     ret = self.children[1].transcript()
 
-    x = transcriptor_dict['SET']
-    v = var_to_rgb(self.children[0].tok)
-
+    var_name = self.children[0].tok
     if transcript.current_func is not None: # Actually in a function's scope
-        function_var = transcript.current_func
+        var_name = f"{transcript.current_func}_{var_name}"
+        if transcript.current_func not in func_vars:
+            func_vars[transcript.current_func] = set()
+        func_vars[transcript.current_func].add(var_name)
+    elif var_name not in var_scope or var_scope[var_name] > transcript.scope:
+        var_scope[var_name] = transcript.scope
 
-        if function_var not in func_vars:
-            func_vars[function_var] = set()
+    x = transcriptor_dict['SET']
+    v = var_to_rgb(var_name)
 
-        func_vars[function_var].add(self.children[0].tok)
-
-    elif self.children[0].tok not in var_scope or var_scope[self.children[0].tok] > transcript.scope:
-        var_scope[self.children[0].tok] = transcript.scope
+    self.children[0].tok = var_name
 
     # transcript.var_counter += 1 added in var_to_rgb
     transcript.instructions_counter += 1
@@ -229,7 +230,6 @@ def transcript(self):
     transcript.instructions_counter += 2 # one jump, one jinz
 
     return ret
-
 
 @addToClass(AST.IfNode)
 def transcript(self):
@@ -290,14 +290,14 @@ def transcript(self):
 @addToClass(AST.FunctionDeclarationNode)
 def transcript(self):
     func_name = str(self.children[0])[:-1]
+    func_name = func_name[1:-1]
 
     if transcript.scope > 0:
         error_exit(f"Function {func_name} has to be declared as global")
-    
     if func_name in func:
-        func_overrides.add(func_name)
+        error_exit(f"Function {func_name} can't be overrided")
     
-    func[func_name] = self.children[1] # Because we need to increase the flag on each call
+    func[func_name] = self.children[1] # Because we need to increase the flag on each call, then we store the function declaration
     
     func_unused.add(func_name)
     
@@ -309,6 +309,7 @@ def transcript(self):
     transcript.scope = -np.inf
 
     func_name = str(self.children[0])[:-1]
+    func_name = func_name[1:-1]
     transcript.current_func = func_name
 
     ret = func[func_name].transcript()
@@ -609,7 +610,6 @@ def warning(container: set, message: str):
 def warnings():
     warning(func_unused, 'Those functions are not used')
     warning(vars_unused, 'Those variables are not used')
-    warning(func_overrides, 'There has been overrides by those functions')
 
 def error_exit(message: str):
     print(f"*** ERROR: {message}\n***        Exit code parsing")
