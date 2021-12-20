@@ -13,10 +13,4 @@ while(aValue2-128)
 	print aValue2;
 };
 
-function something() {
-	print 10;
-};
-
-something();
-
-print aValue2;
+print aValue3;

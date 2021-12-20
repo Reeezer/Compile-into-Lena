@@ -1,31 +1,15 @@
 var0=0;
 var1=0;
-var2=0;
-var3=0;
-if (var0) {
-	print 150;
-} else {
-	print 160;
-};
 
 function something() {
-	print 10;
+	print var1;
 };
 
-function something() {
-	print 100;
-};
-
-function something2() {
-	print 10;
-};
-function something3() {
-	print 10;
-};
-function something4() {
+function other() {
 	print 10;
 };
 
 something();
+other();
 
-print 11;
+print var1;

@@ -68,7 +68,8 @@ func_overrides = set()
 vars = {}
 vars_unused = set()
 
-var_scope = dict()
+var_scope = {}
+func_vars = {}
 
 def verify_limits(value, limit, error, is_unsigned):
     if is_unsigned:
@@ -139,9 +140,11 @@ def transcript(self):
 @addToClass(AST.TokenNode)
 def transcript(self):
     if isinstance(self.tok, str):
-        if var_scope[self.tok] > transcript.scope:
-            print(f"*** Scope is not being respected for var '{self.tok}'\n*** Exit code parsing")
-            exit(-1)
+        if transcript.current_func is not None: # Actually in a function's scope
+            if transcript.current_func not in func_vars or self.tok not in func_vars[transcript.current_func]:
+                error_exit(f"Scope is not being respected for var '{self.tok}' in function {transcript.current_func}")
+        elif var_scope[self.tok] > transcript.scope or (var_scope[self.tok] == -np.inf and transcript.scope != -np.inf):
+            error_exit(f"Scope is not being respected for var '{self.tok}'")
 
         x = transcriptor_dict['PUSHV']
         v = var_to_rgb(self.tok)
@@ -175,7 +178,15 @@ def transcript(self):
     x = transcriptor_dict['SET']
     v = var_to_rgb(self.children[0].tok)
 
-    if self.children[0].tok not in var_scope or (self.children[0].tok in var_scope and var_scope[self.children[0].tok] > transcript.scope):
+    if transcript.current_func is not None: # Actually in a function's scope
+        function_var = transcript.current_func
+
+        if function_var not in func_vars:
+            func_vars[function_var] = set()
+
+        func_vars[function_var].add(self.children[0].tok)
+
+    elif self.children[0].tok not in var_scope or var_scope[self.children[0].tok] > transcript.scope:
         var_scope[self.children[0].tok] = transcript.scope
 
     # transcript.var_counter += 1 added in var_to_rgb
@@ -279,6 +290,9 @@ def transcript(self):
 @addToClass(AST.FunctionDeclarationNode)
 def transcript(self):
     func_name = str(self.children[0])[:-1]
+
+    if transcript.scope > 0:
+        error_exit(f"Function {func_name} has to be declared as global")
     
     if func_name in func:
         func_overrides.add(func_name)
@@ -292,13 +306,15 @@ def transcript(self):
 @addToClass(AST.FunctionCallNode)
 def transcript(self):
     temp_scope = transcript.scope
-    transcript.scope = np.inf
+    transcript.scope = -np.inf
 
     func_name = str(self.children[0])[:-1]
-    
+    transcript.current_func = func_name
+
     ret = func[func_name].transcript()
     
     transcript.scope = temp_scope
+    transcript.current_func = None
 
     if func_name in func_unused:
         func_unused.remove(func_name)
@@ -311,6 +327,7 @@ transcript.const_counter = 0
 transcript.body_counter = 0
 transcript.cond_counter = 0
 transcript.scope = 0
+transcript.current_func = None
 
 arg_generate = '-g'
 arg_run = '-r'
@@ -372,8 +389,7 @@ def controle_size(image):
     print(f'{required_size} pixels are needed, image has {image_size} pixels')
 
     if (image_size < required_size):
-        print(f'the image has only {image_size} pixels')
-        exit(0)
+        error_exit(f'The image has only {image_size} pixels')
     
 def change_bit(bit, image, row_counter, column_counter, rgb_counter):
     '''rgb_value is {2, 1, 0} in rgb (...[2] means red value of pixel)'''
@@ -594,6 +610,10 @@ def warnings():
     warning(func_unused, 'Those functions are not used')
     warning(vars_unused, 'Those variables are not used')
     warning(func_overrides, 'There has been overrides by those functions')
+
+def error_exit(message: str):
+    print(f"*** ERROR: {message}\n***        Exit code parsing")
+    exit(-1)
 
 def print_help_and_exit():
     s = f"""
