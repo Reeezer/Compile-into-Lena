@@ -9,6 +9,8 @@ reserved_words = (
 
 tokens = (
 	'NUMBER',
+	'CHAR',
+	'STRING',
 	'ADD_OP',
 	'MUL_OP',
 	'MOD',
@@ -44,6 +46,16 @@ def t_NUMBER(t):
 		t.value = 0
 	return t
 
+def t_CHAR(t):
+	r'\'[\w\s]\''
+	t.value = t.value[1:-1] # remove the ' '
+	return t
+
+def t_STRING(t):
+	r'"[\w\s]+"'
+	t.value = t.value[1:-1] # remove the " "
+	return t
+
 def t_IDENTIFIER(t):
 	r'[A-Za-z_]\w*'
 	if t.value in reserved_words:
@@ -57,7 +69,7 @@ def t_newline(t):
 t_ignore  = ' \t'
 
 def t_error(t):
-	print ("Illegal character '%s'" % repr(t.value[0]))
+	print ("Illegal character [%s]" % repr(t.value[0]))
 	t.lexer.skip(1)
 
 lex.lex()

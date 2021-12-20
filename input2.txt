@@ -1,12 +1,2 @@
-var0=0;
-var1=13;
-if (var0) {
-	print 150;
-	var1=150
-};
-else {
-	print 160;
-	var1= 160
-};
-
-print var1^50
+var0 = '0';
+print var0
