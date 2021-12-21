@@ -53,8 +53,13 @@ The format of svm's "bytecode" is the following:
     SVM v0.1 - Matthieu Amiguet/HE-Arc, 2008
 """
 
-def parse(filename):
-    code = [line.split(':') for line in open(filename)]
+def parse(text):
+    code = text.split('\n')
+    
+    while (code[-1] == ''):
+        code = code[:-1]
+    
+    code = [line.split(':') for line in code]
     adresses = {}
 
     for num, line in enumerate(code):
@@ -83,7 +88,13 @@ def execute(code, adresses):
         if mnemo == "PUSHC":
             sappend(float(code[ip][1]))
         elif mnemo == "PUSHV":
-                sappend(vars[code[ip][1]])    
+                sappend(vars[code[ip][1]])
+        elif mnemo == "PUSHS":
+                s = ''
+                for _s in code[ip][1:]:
+                    s += _s
+                    s += ' '
+                sappend(s[:-1])
         elif mnemo == "SET":
             val = spop()
             vars[code[ip][1]] = val

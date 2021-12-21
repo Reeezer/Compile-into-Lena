@@ -3,8 +3,7 @@ while (x) {
 	x = x-1;
     if (x) {
 	    print x;
-    }
-    else {
+    } else {
         print 255;
     };
 };

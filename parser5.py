@@ -82,6 +82,11 @@ def p_expression_op(p):
 	p[0] = AST.OpNode(p[2], [p[1], p[3]])
 		
 	
+def p_expression_char_or_string(p):
+	'''expression : CHAR
+		| STRING '''
+	p[0] = AST.StringNode(p[1])
+
 def p_expression_num_or_var(p):
 	'''expression : NUMBER
 		| IDENTIFIER '''

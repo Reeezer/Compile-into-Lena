@@ -1,8 +1,27 @@
+from re import T
 import AST
 from AST import addToClass
 from functools import reduce
 from ast import literal_eval as string_to_tuple
 from math import log
+
+'''
+Authors:
+
+    Campana Luca
+    Muller Leon
+    Girardin Jarod
+
+Date:
+    20.12.2021
+
+Usage:
+    -g
+    Generate a runnable image from a code written in CALL21 (Custom Assembly Lesson Language 2021)
+
+    -r
+    Run a runnable image
+'''
 
 transcriptor_dict = {
     'EMPTY': 0,
@@ -18,29 +37,16 @@ transcriptor_dict = {
     'JMP'  : 10,
     'JIZ'  : 11,
     'JINZ' : 12,
-    'MOD' : 13,
-    'POW' : 14,
+    'MOD'  : 13,
+    'POW'  : 14,
     'PASS' : 15,
-    'VAR' : lambda x: (16, x),  # the size is MAX_INSTRUCTIONS + MAX_VAR
-    'NUM' : lambda x: (17, x),  # the size is MAX_INSTRUCTIONS + MAX_NUM
+    'VAR'  : lambda x: (16, x),  # the size is MAX_INSTRUCTIONS + MAX_VAR
+    'NUM'  : lambda x: (17, x),  # the size is MAX_INSTRUCTIONS + MAX_NUM
     'BODY' : lambda x: (18, x), # the size is MAX_INSTRUCTIONS + MAX_BODY
     'COND' : lambda x: (19, x), # the size is MAX_INSTRUCTIONS + MAX_COND
+    'STR'  : lambda x: (20, len(x), string_as_int(x)), # the size is MAX_INSTRUCTIONS + MAX_NUM + CHAR_LENGTH*len(x)
+    'PUSHS': 21
 }
-
-# thoses MAX means "how much memory is allowed for each thing"
-# meaning for a var of 26 each variable will use 26/3 pixels
-# and also a maximum of 67108864 differents variables
-# 8 would mean maximum 256 instructions
-MAX_INSTRUCTIONS_BIT_SIZE = int(log(len(transcriptor_dict), 2) +1)
-# 3 would mean 8 differents var
-MAX_VAR_BIT_SIZE = 8
-# 5 would mean numeric values goes from -16 to 15
-# for now, negative numbers are not supported
-MAX_NUM_BIT_SIZE = 9
-# same but for conditions
-MAX_CONDITIONS_BIT_SIZE = 8
-# same but for bodys
-MAX_BODIES_BIT_SIZE = 8
 
 def can_invert(key):
     try:
@@ -52,6 +58,36 @@ def can_invert(key):
 
 # reverse the dict
 inv_transcriptor_dict = {v: k for k, v in transcriptor_dict.items() if can_invert(k)}
+
+# manually add the lambdas
+inv_transcriptor_dict[16] = 'VAR'
+inv_transcriptor_dict[17] = 'NUM'
+inv_transcriptor_dict[18] = 'BODY'
+inv_transcriptor_dict[19] = 'COND'
+inv_transcriptor_dict[20] = 'STR'
+
+# thoses MAX means "how much memory is allowed for each thing"
+# meaning for a MAX_VAR_BIT_SIZE of 26 each variable will use 26/3 pixels
+# and also a maximum of 67108864 differents variables
+# 8 would mean maximum 256 instructions
+# 3 would mean 8 differents var
+
+MAX_INSTRUCTIONS_BIT_SIZE = int(log(len(transcriptor_dict), 2) +1)
+
+MAX_VAR_BIT_SIZE = 8
+# 5 would mean numeric values goes from -32 to 32
+# negatives computed as 0 minus positive (-x = 0-abs(x))
+MAX_NUM_BIT_SIZE = 8
+
+# means the string can have max 4095 characters (2**12 -1), -1 because of the empty string ""
+MAX_STRING_LENGTH_BIT_SIZE = 12
+
+MAX_CONDITIONS_BIT_SIZE = 8
+
+MAX_BODIES_BIT_SIZE = 8
+
+# using the whole ascii table => 128 bits, or 2**7
+CHAR_BIT_SIZE = 7
 
 operations = {
     '+': lambda x,y: f"{x}{y}{transcriptor_dict['ADD']}\n",
@@ -68,13 +104,16 @@ func_overrides = set()
 vars = {}
 vars_unused = set()
 
-def verify_limits(value, limit, error, is_unsigned):
-    if is_unsigned:
-        if value > pow(2, limit):
-            raise Exception(error)
-    else:
-        if value > pow(2, limit-1) -1 or value < -pow(2, limit-1):
-            raise Exception(error)
+def verify_limits(value, limit, error):
+    p = pow(2, limit) -1
+    if value > p:
+        raise Exception(f'{error}\ncurrent: {value}, max: {p}')
+
+def verify_chars_are_ascii(s):
+    for c in s:
+        if ord(c) > 127:
+            raise Exception(f'{c} is not an ASCII character\nin string {s}')
+
 
 def var_to_rgb(var):
     if var in vars.keys():
@@ -83,7 +122,7 @@ def var_to_rgb(var):
         if var in vars_unused:
             vars_unused.remove(var)
         return vars[var]
-    verify_limits(var_to_rgb.var_name_counter, MAX_VAR_BIT_SIZE, 'too much var', True)
+    verify_limits(var_to_rgb.var_name_counter, MAX_VAR_BIT_SIZE, 'too much var')
     x = transcriptor_dict['VAR'](var_to_rgb.var_name_counter)
     var_to_rgb.var_name_counter += 1
     vars[var] = x
@@ -96,14 +135,16 @@ NEGATIVE = 0
 POSITIVE = 1
 
 def num_to_rgb(num):
-    verify_limits(num, MAX_NUM_BIT_SIZE, 'number too big or too short', False)
+    # use False if numbers are unsigned, actually -127 is computed as 0- (+127) so only positive are concidered for now
+    # verify_limits(num, MAX_NUM_BIT_SIZE, 'number too big or too short', False)
+    verify_limits(num, MAX_NUM_BIT_SIZE, 'number too big or too short')
     x = int(num)
     transcript.const_counter += 1
     transcript.instructions_counter += 1
     return transcriptor_dict['NUM'](x)
 
 def body_to_rgb():
-    verify_limits(body_to_rgb.body_name_counter, MAX_BODIES_BIT_SIZE, 'too much bodies', True)
+    verify_limits(body_to_rgb.body_name_counter, MAX_BODIES_BIT_SIZE, 'too much bodies')
     transcript.body_counter += 2 # each time, two are used
     transcript.instructions_counter += 2 # each time, two are used
     ret = transcriptor_dict['BODY'](body_to_rgb.body_name_counter)
@@ -111,13 +152,27 @@ def body_to_rgb():
     return ret
 
 def cond_to_rgb():
-    verify_limits(cond_to_rgb.cond_name_counter, MAX_CONDITIONS_BIT_SIZE, 'too much conditions', True)
+    verify_limits(cond_to_rgb.cond_name_counter, MAX_CONDITIONS_BIT_SIZE, 'too much conditions')
     transcript.cond_counter += 2 # each time, two are used
     transcript.instructions_counter += 2 # each time, two are used
     ret = transcriptor_dict['COND'](cond_to_rgb.cond_name_counter)
     cond_to_rgb.cond_name_counter += 1
     return ret
 
+def string_to_rgb(s):
+    verify_chars_are_ascii(s)
+    verify_limits(len(s), MAX_STRING_LENGTH_BIT_SIZE, 'string too long')
+    transcript.instructions_counter += 1
+    transcript.string_counter += 1
+    transcript.char_counter += len(s)
+    ret = transcriptor_dict['STR'](s)
+    return ret
+
+def string_as_int(s):
+    ret = []
+    for c in s:
+        ret.append(ord(c))
+    return ret
 
 var_to_rgb.var_name_counter = 0
 body_to_rgb.body_name_counter = 0
@@ -145,9 +200,24 @@ def transcript(self):
         x = transcriptor_dict['PUSHC']
         v = num_to_rgb(self.tok)
         # transcript.const_counter += 1 added in num_to_rgb
-
     transcript.instructions_counter += 1
     return f"{x}\n{v}\n"
+
+
+@addToClass(AST.StringNode)
+def transcript(self):
+    x = transcriptor_dict['PUSHS']
+    v = string_to_rgb(self.tok)
+    
+    transcript.instructions_counter += 1
+    return f"{x}\n{v}\n"
+
+    transcript.instructions_counter += 1
+    transcript.const_counter += 1
+    transcript.char_counter += len(self.tok)
+    x = transcriptor_dict['STR'](self.tok)
+    
+    return f"{x}\n"
 
 @addToClass(AST.OpNode)
 def transcript(self):
@@ -282,6 +352,8 @@ transcript.instructions_counter = 0
 transcript.const_counter = 0
 transcript.body_counter = 0
 transcript.cond_counter = 0
+transcript.string_counter = 0
+transcript.char_counter = 0
 
 arg_generate = '-g'
 arg_run = '-r'
@@ -293,6 +365,11 @@ def get_instruction(instruction):
         return string_to_tuple(instruction)
 
 def split_into_bits(value, max_bits):
+    if type(value) == list:
+        ret = []
+        for v in value:
+            ret += (split_into_bits(v, CHAR_BIT_SIZE))
+        return ret
     if (value == 0):
         return [0 for _ in range(max_bits)]
     value_nb_bits = int(log(value, 2)+1)
@@ -313,11 +390,13 @@ def split_into_bits(value, max_bits):
     return ret
 
 def increment(row, column, array):
-    #print(f'row, column {row}, {column}')
     column += 1
     if column >= array.shape[0]:
         column = 0
         row += 1
+    if row >= array.shape[1]:
+        print('ERROR: code out of range of picture size')
+        exit(-1)
     return row, column
 
 def controle_size(image):
@@ -326,17 +405,26 @@ def controle_size(image):
     + transcript.var_counter   * MAX_VAR_BIT_SIZE
     + transcript.const_counter * MAX_NUM_BIT_SIZE
     + transcript.body_counter  * MAX_BODIES_BIT_SIZE
-    + transcript.cond_counter * MAX_CONDITIONS_BIT_SIZE)
-
-    # print(f'instr nb {transcript.instructions_counter}')
-    # print(f'var nb {transcript.var_counter}')
-    # print(f'const nb {transcript.const_counter}')
-    # print(f'body nb {transcript.body_counter}')
-    # print(f'cond nb {transcript.cond_counter}\n')
+    + transcript.cond_counter * MAX_CONDITIONS_BIT_SIZE
+    + transcript.string_counter * MAX_STRING_LENGTH_BIT_SIZE
+    + transcript.char_counter * CHAR_BIT_SIZE)
 
     # how much pixels are needed
     required_size += MAX_INSTRUCTIONS_BIT_SIZE # add the EMPTY operator at the end
     # print(f'required size {required_size}')
+    
+    if DEBUG:
+        print('\nhow much bits per thing:')
+        print(f'instr nb {transcript.instructions_counter}\t=> {transcript.instructions_counter * MAX_INSTRUCTIONS_BIT_SIZE}')
+        print(f'var nb {transcript.var_counter}\t=> {transcript.var_counter * MAX_VAR_BIT_SIZE}')
+        print(f'const nb {transcript.const_counter}\t=> {transcript.const_counter * MAX_NUM_BIT_SIZE}')
+        print(f'body nb {transcript.body_counter}\t=> {transcript.body_counter * MAX_BODIES_BIT_SIZE}')
+        print(f'cond nb {transcript.cond_counter}\t=> {transcript.cond_counter * MAX_CONDITIONS_BIT_SIZE}')
+        print(f'str nb {transcript.string_counter}\t=> {transcript.string_counter * MAX_STRING_LENGTH_BIT_SIZE} (for the length indicator)')
+        print(f'char nb {transcript.char_counter}\t=> {transcript.char_counter * CHAR_BIT_SIZE}')
+        print(f'eof inst nb 1\t=> {MAX_INSTRUCTIONS_BIT_SIZE}')
+        print(f'\nfor a total of\t=> {required_size}\n')
+
     required_size = int(required_size / 3 + 1)
 
     image_size = image.shape[0] * image.shape[1]
@@ -375,35 +463,56 @@ def generate_image(s, source_image_path, output_image_path):
     column_counter = 0
     row_counter = 0
     rgb_counter = 0
-    
+
     for instruction in instructions: # instruction is str
         instruction = get_instruction(instruction)
         value = None
+        string = None
         if (type(instruction) is tuple):
+            if len(instruction) == 3:
+                string = instruction[2]
             value = instruction[1]
             instruction = instruction[0]
-        
-
-        # USEFULL FOR DEBUG, TRY IT !       
-        # print(f'__________________________________________________')
-        # print(f'{instruction}\tinstruction')
-        # print(f'\t{split_into_bits(instruction, MAX_INSTRUCTIONS_BIT_SIZE)}')
-        # if value is not None:
-        #     size_to_convert = MAX_NUM_BIT_SIZE if was_a_num else MAX_VAR_BIT_SIZE
-        #     print(f'{value}\tvalue')
-        #     print(f'\t{split_into_bits(value, size_to_convert)}')
-        
+               
 
 
         for bit in split_into_bits(instruction, MAX_INSTRUCTIONS_BIT_SIZE):
             row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
-        
+                
         was_a_num = instruction == transcriptor_dict['NUM'](0)[0]
+        was_a_string = instruction == transcriptor_dict['STR']('')[0]
+        
+        
+        # USEFULL FOR DEBUG, TRY IT !    
+        if DEBUG:
+            print(f'__________________________________________________')
+            insctruction_name = inv_transcriptor_dict[instruction] if instruction in inv_transcriptor_dict.keys() else 'SPECIAL INSTRUCTION'
+            print(f'{instruction}\tinstruction: {insctruction_name}')
+            print(f'\t{split_into_bits(instruction, MAX_INSTRUCTIONS_BIT_SIZE)}')
+            if value is not None:
+                if was_a_string:
+                    print(f'{value}\tlen of string')
+                    print(f'\t{split_into_bits(value, MAX_STRING_LENGTH_BIT_SIZE)}')
+                    print(f'{string}\tstring')
+                    print(f'\t{split_into_bits(string, CHAR_BIT_SIZE*value)}')
+                else:
+                    size_to_convert = MAX_NUM_BIT_SIZE if was_a_num else MAX_VAR_BIT_SIZE
+                    print(f'{value}\tvalue')
+                    print(f'\t{split_into_bits(value, size_to_convert)}')
+
+
         # add var id or num value
-        if (value is not None):
-            size_to_convert = MAX_NUM_BIT_SIZE if was_a_num else MAX_VAR_BIT_SIZE
-            for bit in split_into_bits(value, size_to_convert):
-                row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
+        if value is not None:
+                if was_a_string:
+                    for bit in split_into_bits(value, MAX_STRING_LENGTH_BIT_SIZE):
+                        row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
+                    for bit in split_into_bits(string, CHAR_BIT_SIZE*value):
+                        row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
+                else:
+                    size_to_convert = MAX_NUM_BIT_SIZE if was_a_num else MAX_VAR_BIT_SIZE
+                    for bit in split_into_bits(value, size_to_convert):
+                        row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
+
 
     # apply "EOF"
     for bit in split_into_bits(transcriptor_dict['EMPTY'], MAX_INSTRUCTIONS_BIT_SIZE):
@@ -419,14 +528,26 @@ def bit_array_to_int(arr):
     x = 0
     for i in range(len(arr)):
         x += arr[i] * pow(2, i)
+    return x
+    
 
-    return x    
+def bit_array_to_str(arr):
+    arr.reverse()
+    s = ''
+    for i in range(0, len(arr), CHAR_BIT_SIZE):
+        x = 0
+        for j in range(CHAR_BIT_SIZE):
+            x += arr[j+i] * pow(2, j)
+        s += chr(x)
+    return s[::-1]
 
 was_last_operation_linked_with_body_or_cond = False
 was_last_instruction_var = False
 was_last_instruction_num = False
 was_last_instruction_body = False
 was_last_instruction_cond = False
+was_last_instruction_str_part_1 = False
+was_last_instruction_str_part_2 = False
 
 
 def decode(code_rgb):
@@ -437,6 +558,8 @@ def decode(code_rgb):
     global was_last_instruction_num
     global was_last_instruction_body
     global was_last_instruction_cond
+    global was_last_instruction_str_part_1
+    global was_last_instruction_str_part_2
 
     # false when you have to add : and no \n to the line
     # true for the inverse
@@ -449,51 +572,59 @@ def decode(code_rgb):
             code_rgb == transcriptor_dict['JMP']
             or code_rgb == transcriptor_dict['JINZ'])
 
-    #print(f'{old_was_last_operation_linked_with_body_or_cond} when {inv_transcriptor_dict[code_rgb] if can_invert(code_rgb) else code_rgb}')
-
-    if code_rgb == transcriptor_dict['VAR'](0)[0]:
-        was_last_instruction_var = True
-        return ' ', False
-
-    elif was_last_instruction_var:
+   
+    if was_last_instruction_var:
         was_last_instruction_var = False
         return f'var{code_rgb}', True
-    
-    elif code_rgb == transcriptor_dict['NUM'](0)[0]:
-        was_last_instruction_num = True
-        return ' ', False
-
+        
     elif was_last_instruction_num:
         was_last_instruction_num = False
         return f'{code_rgb}', True
-    
-    elif code_rgb == transcriptor_dict['BODY'](0)[0]:
-        was_last_instruction_body = True
-        return ' ' if old_was_last_operation_linked_with_body_or_cond else '', False
-    
+        
     elif was_last_instruction_body:
         was_last_instruction_body = False
         double_dot = ':' if not old_was_last_operation_linked_with_body_or_cond else ''
         return f'body{code_rgb}{double_dot} ', old_was_last_operation_linked_with_body_or_cond
-
-    elif code_rgb == transcriptor_dict['COND'](0)[0]:
-        was_last_instruction_cond = True
-        return ' ' if old_was_last_operation_linked_with_body_or_cond else '', False
-    
+        
     elif was_last_instruction_cond:
         was_last_instruction_cond = False
         double_dot = ':' if not old_was_last_operation_linked_with_body_or_cond else ''
         return f'cond{code_rgb}{double_dot} ', old_was_last_operation_linked_with_body_or_cond
 
+    elif was_last_instruction_str_part_1:
+        was_last_instruction_str_part_1 = False
+        was_last_instruction_str_part_2 = True
+        return ' ', False
 
-    # was_last_instruction_var = code_rgb == transcriptor_dict['VAR'](0)[0]
-    # was_last_instruction_num = code_rgb == transcriptor_dict['NUM'](0)[0]
-    # was_last_instruction_body = code_rgb == transcriptor_dict['BODY'](0)[0]
-    # was_last_instruction_cond = code_rgb == transcriptor_dict['COND'](0)[0]
+    elif was_last_instruction_str_part_2:
+        was_last_instruction_str_part_2 = False
+        return f'{code_rgb}', True
+
+
+    elif code_rgb == transcriptor_dict['VAR'](0)[0]:
+        was_last_instruction_var = True
+        return ' ', False
+    
+    elif code_rgb == transcriptor_dict['NUM'](0)[0]:
+        was_last_instruction_num = True
+        return ' ', False
+    
+    elif code_rgb == transcriptor_dict['BODY'](0)[0]:
+        was_last_instruction_body = True
+        return ' ' if old_was_last_operation_linked_with_body_or_cond else '', False
+
+    elif code_rgb == transcriptor_dict['COND'](0)[0]:
+        was_last_instruction_cond = True
+        return ' ' if old_was_last_operation_linked_with_body_or_cond else '', False
+
+    elif code_rgb == transcriptor_dict['STR']('')[0]:
+        was_last_instruction_str_part_1 = True
+        return '', False
 
     should_new_line = not (
            code_rgb == transcriptor_dict['PUSHC']
         or code_rgb == transcriptor_dict['PUSHV']
+        or code_rgb == transcriptor_dict['PUSHS']
         or code_rgb == transcriptor_dict['SET']
         or code_rgb == transcriptor_dict['JMP']
         or code_rgb == transcriptor_dict['JINZ']
@@ -509,6 +640,8 @@ def run_image(image_array):
     global was_last_instruction_num
     global was_last_instruction_body
     global was_last_instruction_cond
+    global was_last_instruction_str_part_1
+    global was_last_instruction_str_part_2
 
     code = ''
 
@@ -527,17 +660,22 @@ def run_image(image_array):
                 rgb_counter = 0
                 row_counter, column_counter = increment(row_counter, column_counter, image_array)
         
-        code_as_bit = bit_array_to_int(x)
+        if was_last_instruction_str_part_2:
+            code_as_bit = bit_array_to_str(x)
+        else:
+            code_as_bit = bit_array_to_int(x)
 
         if (code_as_bit == transcriptor_dict['EMPTY']
         and not was_last_instruction_num
         and not was_last_instruction_var
         and not was_last_instruction_cond
-        and not was_last_instruction_body):
+        and not was_last_instruction_body
+        and not was_last_instruction_str_part_1
+        and not was_last_instruction_str_part_2):
             break
 
         decoded, should_new_line = decode(code_as_bit)
-        
+
         if was_last_instruction_num:
             size_to_read = MAX_NUM_BIT_SIZE
         elif was_last_instruction_var:
@@ -546,56 +684,72 @@ def run_image(image_array):
             size_to_read = MAX_CONDITIONS_BIT_SIZE
         elif was_last_instruction_body:
             size_to_read = MAX_BODIES_BIT_SIZE
+        elif was_last_instruction_str_part_1:
+            size_to_read = MAX_STRING_LENGTH_BIT_SIZE
+        elif was_last_instruction_str_part_2:
+            print(f'charbit is {CHAR_BIT_SIZE}, code_as_bit is {code_as_bit}')
+            size_to_read = CHAR_BIT_SIZE*int(code_as_bit)
         else:
             size_to_read = MAX_INSTRUCTIONS_BIT_SIZE
 
         new_line = '\n' if should_new_line else ''
         code += f'{decoded}{new_line}'
 
-    # TODO: change behavior, instead of writing to file, give string
-    opcode_filename = 'output.vm'
-    with open(opcode_filename, 'w') as f:
-        f.write(code)
-    
-    #print(code)
 
-    run(opcode_filename)
-
-    import os
-    try:
-        os.remove(opcode_filename)
-    except:
-        print('unknown error')    
+    if DEBUG:
+        opcode_filename = 'output.vm'
+        with open(opcode_filename, 'w') as f:
+            f.write(code)
+        print(code)
+    run(code)
 
 def warning(container: set, message: str):
     if len(container) > 0:
         print(f"*** WARNING: {message}:")
         for x in container:
             print(f"             - {x}")
-        print()
+        print() 
 
 def warnings():
     warning(func_unused, 'Those functions are not used')
     warning(vars_unused, 'Those variables are not used')
     warning(func_overrides, 'There has been an overrides by those functions')
 
+
 def print_help_and_exit():
-    s = f"""
+    s = f"""transcriptor.py {{MODE}} {{SOURCE}} {{IMAGE_SOURCE}} --debug
     HOW TO USE
 
-    first arg must be [{arg_generate} | {arg_run}]
-    second arg must be the path to the code file
-    third arg must be the path to the source image when generating
+    1st arg must be [{arg_generate} | {arg_run}]
+    2nd arg must be the path to the code file
+    3rd arg must be the path to the source image when generating
+    4th arg can be --debug to show debug information
 
-    ex.
+    MODE: {arg_generate}: compile the code
+          {arg_run}: run the code inside an image
+    ____________________________________________________
+
     python transcriptor.py {arg_generate} my_code.txt image_source.png
     python transcriptor.py {arg_run} my_code_picture.bmp
+    ____________________________________________________
+
+    - show each pixel in console
+    python transcriptor.py {arg_generate} my_code.txt image_source.png --debug
+
+    - keep the .mv file
+    python transcriptor.py {arg_run} my_code_picture.bmp --debug
     ____________________________________________________"""
     print(s)
     exit(0)
 
 def get_args():
+    if (len(sys.argv) >= 5 and sys.argv[4].lower() == '--debug'
+        or len(sys.argv) == 4 and sys.argv[3].lower() == '--debug'):
+        global DEBUG
+        DEBUG = True
     return sys.argv[1], sys.argv[2], sys.argv[3] if len(sys.argv) >= 4 else None
+
+DEBUG = False
 
 if __name__ == '__main__':
     import sys

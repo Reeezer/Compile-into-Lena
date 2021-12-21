@@ -1,9 +1,10 @@
 var0=0;
 var1=0;
+var2=0;
+var3=0;
 if (var0) {
 	print 150;
-}
-else {
+} else {
 	print 160;
 };
 
@@ -16,6 +17,12 @@ function something() {
 };
 
 function something2() {
+	print 10;
+};
+function something3() {
+	print 10;
+};
+function something4() {
 	print 10;
 };
 
