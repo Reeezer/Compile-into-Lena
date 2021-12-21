@@ -49,6 +49,7 @@ def can_invert(key):
     except Exception:
         return False
 
+
 # reverse the dict
 inv_transcriptor_dict = {v: k for k, v in transcriptor_dict.items() if can_invert(k)}
 
@@ -93,6 +94,7 @@ def var_to_rgb(var):
 
 NEGATIVE = 0
 POSITIVE = 1
+
 def num_to_rgb(num):
     verify_limits(num, MAX_NUM_BIT_SIZE, 'number too big or too short', False)
     x = int(num)

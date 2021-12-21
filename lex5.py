@@ -15,6 +15,7 @@ tokens = (
 	'MOD',
 	'POW',
 	'IDENTIFIER',
+	'TYPE',
 ) + tuple(map(lambda s: s.upper(), reserved_words))
 
 literals = '();={}'
@@ -22,6 +23,10 @@ literals = '();={}'
 
 def t_ADD_OP(t):
 	r'[+-]'
+	return t
+
+def t_TYPE(t):
+	r'int|float|double|string'
 	return t
 
 def t_MOD(t):
