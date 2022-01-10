@@ -84,19 +84,15 @@ Les images peuvent être carrées ou rectangulaires, le nombre de pixels disponi
 
 ### Type
 
-Un contrôle de type est appliqué aux variables, en fonction de leur valeur affectée:
+Un contrôle de type est appliqué aux variables, en fonction de la valeur qui leur est affectée. Les types supportés sont: int, string, float (FIXME)
+
+Lors des opérations arithémtiques, un contrôle de type est effectué: par exemple, si on additionne un **int** avec un **float**, un warning sera levé, mais le code compilera tout de même.
 
 ### Utilisation des fonctions et des variables
 
-### Portée des fonctions et des variables
+Chaque variable ou fonction définie est ajoutée à un set, si cette fonction ou variable n'est jamais utilisée un warning sera levé, mais le code compilera tout de même.
 
-- Contrôle du type de variable en fonction de sa valeur affectée.
-    - Variables supportées: 
-        - int
-        - string
-        - float FIXME
-        
-- Contrôle du type des variables durant les opérations : par exemple, si on additionne un **int** avec un **float**, un warning sera levé.  
+### Portée des fonctions et des variables
 
 - Contrôle de l'utilisation ou non des variables et fonctions: par exemple, si trois variables (var0, var1 et var2) ne sont pas utilisées mais déclarées, le compilateur résumera ses variables en fin de compilation comme étant pas utilisées.
 
