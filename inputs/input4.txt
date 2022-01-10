@@ -1,3 +1,5 @@
-a = -10+1;
-b = a + 2;
+float abc = 1;
+int a = 1;
+int b = a + 2.0;
+float c = 3.0;
 print a;
