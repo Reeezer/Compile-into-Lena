@@ -207,12 +207,8 @@ def transcript(self):
             error_exit(f"Scope is not being respected for variable '{var_name}' in function '{current_func_name}'")
 
         x = transcriptor_dict['PUSHV']
-<<<<<<< HEAD
-        v = var_to_rgb(self.tok)
-=======
         v = var_to_rgb(var_name)
         # transcript.var_counter += 1 added in var_to_rgb
->>>>>>> 91a44e0cc79b4f26d2c779521ab0d3e1ce224043
     else:
         x = transcriptor_dict['PUSHC']
         v = num_to_rgb(self.tok)
