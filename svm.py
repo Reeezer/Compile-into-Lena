@@ -55,10 +55,8 @@ The format of svm's "bytecode" is the following:
 
 def parse(text):
     code = text.split('\n')
-    
     while (code[-1] == ''):
         code = code[:-1]
-    
     code = [line.split(':') for line in code]
     adresses = {}
 

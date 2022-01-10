@@ -3,7 +3,8 @@ import AST
 from AST import addToClass
 from functools import reduce
 from ast import literal_eval as string_to_tuple
-from math import log
+from math import inf, log
+import numpy as np
 
 '''
 Authors:
@@ -100,9 +101,13 @@ operations = {
 
 func = {}
 func_unused = set()
-func_overrides = set()
 vars = {}
 vars_unused = set()
+
+var_scope = {} # dict of dict: access to function's scope, and then variable's scope (in the given function)
+var_scope['main'] = {}
+current_scope = {} # dict: access to current scope of a given function
+current_scope['main'] = 0
 
 def verify_limits(value, limit, error):
     p = pow(2, limit) -1
@@ -113,7 +118,6 @@ def verify_chars_are_ascii(s):
     for c in s:
         if ord(c) > 127:
             raise Exception(f'{c} is not an ASCII character\nin string {s}')
-
 
 def var_to_rgb(var):
     if var in vars.keys():
@@ -193,8 +197,17 @@ def transcript(self):
 @addToClass(AST.TokenNode)
 def transcript(self):
     if isinstance(self.tok, str):
+        current_func_name = transcript.current_func
+        var_name = self.tok
+        
+        if current_func_name != 'main': # Actually in a function's scope
+            var_name = f"{current_func_name}_{var_name}"
+
+        if var_name not in var_scope[current_func_name] or var_scope[current_func_name][var_name] > current_scope[current_func_name]:
+            error_exit(f"Scope is not being respected for variable '{var_name}' in function '{current_func_name}'")
+
         x = transcriptor_dict['PUSHV']
-        v = var_to_rgb(self.tok)
+        v = var_to_rgb(var_name)
         # transcript.var_counter += 1 added in var_to_rgb
     else:
         x = transcriptor_dict['PUSHC']
@@ -236,9 +249,20 @@ def transcript(self):
 @addToClass(AST.AssignNode)
 def transcript(self):
     ret = self.children[1].transcript()
+    
+    current_func_name = transcript.current_func
+    var_name = self.children[0].tok
+
+    if current_func_name != 'main': # Actually in a function's scope
+        var_name = f"{current_func_name}_{var_name}"
+
+    if var_name not in var_scope[current_func_name] or var_scope[current_func_name][var_name] > current_scope[current_func_name]:
+        var_scope[current_func_name][var_name] = current_scope[current_func_name]
 
     x = transcriptor_dict['SET']
-    v = var_to_rgb(self.children[0].tok)
+    v = var_to_rgb(var_name)
+
+    self.children[0].tok = var_name
 
     # transcript.var_counter += 1 added in var_to_rgb
     transcript.instructions_counter += 1
@@ -260,6 +284,7 @@ def transcript(self):
 
 @addToClass(AST.WhileNode)
 def transcript(self):
+    current_scope[transcript.current_func] += 1
 
     jmp = transcriptor_dict['JMP']
     cond = cond_to_rgb()
@@ -274,14 +299,15 @@ def transcript(self):
     ret += self.children[0].transcript()
     ret += f"{jinz}\n{body}\n"
 
+    current_scope[transcript.current_func] -= 1
 
     transcript.instructions_counter += 2 # one jump, one jinz
 
     return ret
 
-
 @addToClass(AST.IfNode)
 def transcript(self):
+    current_scope[transcript.current_func] += 1
     
     jmp = transcriptor_dict['JMP']
     jinz = transcriptor_dict['JINZ']
@@ -300,12 +326,15 @@ def transcript(self):
     
     ret += f"{endif}\n"
 
+    current_scope[transcript.current_func] -= 1
+
     transcript.instructions_counter += 3 # two jump, one jinz
 
     return ret
 
 @addToClass(AST.IfElseNode)
 def transcript(self):
+    current_scope[transcript.current_func] += 1
    
     jmp = transcriptor_dict['JMP']
     jinz = transcriptor_dict['JINZ']
@@ -326,6 +355,8 @@ def transcript(self):
     
     ret += f"{endif}\n"
 
+    current_scope[transcript.current_func] -= 1
+
     transcript.instructions_counter += 3 # two jump, one jinz
 
     return ret
@@ -333,18 +364,38 @@ def transcript(self):
 @addToClass(AST.FunctionDeclarationNode)
 def transcript(self):
     func_name = str(self.children[0])[:-1]
+    func_name = func_name[1:-1]
+
+    if current_scope['main'] > 0:
+        error_exit(f"Function {func_name} has to be declared as global")
     if func_name in func:
-        func_overrides.add(func_name)
-    func[func_name] = self.children[1] # Because we need to increase the flag on each call
+        error_exit(f"Function {func_name} can't be overrided")
+    
+    current_scope[func_name] = 0
+    var_scope[func_name] = {}
+    
+    func[func_name] = self.children[1] # Because we need to increase the flag on each call, then we store the function declaration
+    
     func_unused.add(func_name)
+    
     return ""
 
 @addToClass(AST.FunctionCallNode)
 def transcript(self):
     func_name = str(self.children[0])[:-1]
+    func_name = func_name[1:-1]
+
+    transcript.current_func = func_name
+    current_scope[func_name] += 1
+
     ret = func[func_name].transcript()
+    
+    current_scope[func_name] -= 1
+    transcript.current_func = 'main'
+
     if func_name in func_unused:
         func_unused.remove(func_name)
+    
     return ret
 
 transcript.var_counter = 0
@@ -352,6 +403,7 @@ transcript.instructions_counter = 0
 transcript.const_counter = 0
 transcript.body_counter = 0
 transcript.cond_counter = 0
+transcript.current_func = 'main'
 transcript.string_counter = 0
 transcript.char_counter = 0
 
@@ -431,8 +483,7 @@ def controle_size(image):
     print(f'{required_size} pixels are needed, image has {image_size} pixels')
 
     if (image_size < required_size):
-        print(f'the image has only {image_size} pixels')
-        exit(0)
+        error_exit(f'The image has only {image_size} pixels')
     
 def change_bit(bit, image, row_counter, column_counter, rgb_counter):
     '''rgb_value is {2, 1, 0} in rgb (...[2] means red value of pixel)'''
@@ -713,7 +764,10 @@ def warning(container: set, message: str):
 def warnings():
     warning(func_unused, 'Those functions are not used')
     warning(vars_unused, 'Those variables are not used')
-    warning(func_overrides, 'There has been an overrides by those functions')
+
+def error_exit(message: str):
+    print(f"*** ERROR: {message}\n***        Exit code parsing")
+    exit(-1)
 
 
 def print_help_and_exit():
