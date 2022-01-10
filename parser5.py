@@ -4,7 +4,6 @@ import math
 from lex5 import tokens
 
 import AST
-from transcriptor import warning
 
 operations = {
 	'+' : lambda x,y: x+y,
@@ -76,8 +75,8 @@ def p_expression_op(p):
 			| expression POW expression'''
 
 	#if not isinstance(p[1],AST.OpNode) and not check_type(p[1],type(eval((str)(p[3]))).__name__) :
-	#if not isinstance(p[1],AST.OpNode) and not check_type(p[1],type(eval((str)(p[3]))).__name__) :
-		#print(f"WARNING ! : operation '{p[2]}' between two different types of values: ({p[1]} and {eval((str)(p[3]))}) !")
+	if not isinstance(p[1],AST.OpNode) and not check_type(p[1],type(eval((str)(p[3]))).__name__) :
+		print(f"WARNING ! : operation '{p[2]}' between two different types of values: ({p[1]} and {eval((str)(p[3]))}) !")
 	
 	p[0] = AST.OpNode(p[2], [p[1], p[3]])
 		
@@ -106,8 +105,8 @@ def p_assign(p):
 	global i_assign
 	i_assign = 1
 	try:
-		#if not check_type(p[i_assign+3],p[i_assign]):
-			#print(f"WARNING ! Type assignation ({p[i_assign+3]} with {p[i_assign]})")
+		if not check_type(p[i_assign+3],p[i_assign]):
+			print(f"WARNING ! Type assignation ({p[i_assign+3]} with {p[i_assign]})")
 		p[0] = AST.AssignNode([AST.TokenNode(p[i_assign+1]),p[i_assign+3]])
 	except:
 		i_assign = 0

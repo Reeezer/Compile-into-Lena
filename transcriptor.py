@@ -195,11 +195,9 @@ def transcript(self):
     if isinstance(self.tok, str):
         x = transcriptor_dict['PUSHV']
         v = var_to_rgb(self.tok)
-        # transcript.var_counter += 1 added in var_to_rgb
     else:
         x = transcriptor_dict['PUSHC']
         v = num_to_rgb(self.tok)
-        # transcript.const_counter += 1 added in num_to_rgb
     transcript.instructions_counter += 1
     return f"{x}\n{v}\n"
 
@@ -212,12 +210,6 @@ def transcript(self):
     transcript.instructions_counter += 1
     return f"{x}\n{v}\n"
 
-    transcript.instructions_counter += 1
-    transcript.const_counter += 1
-    transcript.char_counter += len(self.tok)
-    x = transcriptor_dict['STR'](self.tok)
-    
-    return f"{x}\n"
 
 @addToClass(AST.OpNode)
 def transcript(self):
@@ -226,7 +218,6 @@ def transcript(self):
         x = transcriptor_dict['PUSHC']
         v = num_to_rgb(0)
 
-        # transcript.const_counter += 1 added in num_to_rgb
         transcript.instructions_counter += 1 # PUSHC
         args.insert(0, f"{x}\n{v}\n")
 
@@ -240,7 +231,6 @@ def transcript(self):
     x = transcriptor_dict['SET']
     v = var_to_rgb(self.children[0].tok)
 
-    # transcript.var_counter += 1 added in var_to_rgb
     transcript.instructions_counter += 1
 
     ret += f"{x}\n{v}\n"
@@ -250,7 +240,6 @@ def transcript(self):
 @addToClass(AST.PrintNode)
 def transcript(self):
     ret = self.children[0].transcript()
-
     x = transcriptor_dict['PRINT']
     transcript.instructions_counter += 1
 
@@ -273,7 +262,6 @@ def transcript(self):
     ret += f"{cond}\n"
     ret += self.children[0].transcript()
     ret += f"{jinz}\n{body}\n"
-
 
     transcript.instructions_counter += 2 # one jump, one jinz
 
@@ -408,21 +396,21 @@ def controle_size(image):
     + transcript.cond_counter * MAX_CONDITIONS_BIT_SIZE
     + transcript.string_counter * MAX_STRING_LENGTH_BIT_SIZE
     + transcript.char_counter * CHAR_BIT_SIZE)
-
+    
     # how much pixels are needed
     required_size += MAX_INSTRUCTIONS_BIT_SIZE # add the EMPTY operator at the end
     # print(f'required size {required_size}')
     
     if DEBUG:
         print('\nhow much bits per thing:')
-        print(f'instr nb {transcript.instructions_counter}\t=> {transcript.instructions_counter * MAX_INSTRUCTIONS_BIT_SIZE}')
-        print(f'var nb {transcript.var_counter}\t=> {transcript.var_counter * MAX_VAR_BIT_SIZE}')
-        print(f'const nb {transcript.const_counter}\t=> {transcript.const_counter * MAX_NUM_BIT_SIZE}')
-        print(f'body nb {transcript.body_counter}\t=> {transcript.body_counter * MAX_BODIES_BIT_SIZE}')
-        print(f'cond nb {transcript.cond_counter}\t=> {transcript.cond_counter * MAX_CONDITIONS_BIT_SIZE}')
-        print(f'str nb {transcript.string_counter}\t=> {transcript.string_counter * MAX_STRING_LENGTH_BIT_SIZE} (for the length indicator)')
-        print(f'char nb {transcript.char_counter}\t=> {transcript.char_counter * CHAR_BIT_SIZE}')
-        print(f'eof inst nb 1\t=> {MAX_INSTRUCTIONS_BIT_SIZE}')
+        print(f'instructions\tnb {transcript.instructions_counter}\t=> {transcript.instructions_counter * MAX_INSTRUCTIONS_BIT_SIZE}')
+        print(f'var\tnb {transcript.var_counter}\t=> {transcript.var_counter * MAX_VAR_BIT_SIZE}')
+        print(f'const\tnb {transcript.const_counter}\t=> {transcript.const_counter * MAX_NUM_BIT_SIZE}')
+        print(f'body\tnb {transcript.body_counter}\t=> {transcript.body_counter * MAX_BODIES_BIT_SIZE}')
+        print(f'cond\tnb {transcript.cond_counter}\t=> {transcript.cond_counter * MAX_CONDITIONS_BIT_SIZE}')
+        print(f'str\tnb {transcript.string_counter}\t=> {transcript.string_counter * MAX_STRING_LENGTH_BIT_SIZE} (for the length indicator)')
+        print(f'char\tnb {transcript.char_counter}\t=> {transcript.char_counter * CHAR_BIT_SIZE}')
+        print(f'eof insttruction\tnb 1\t=> {MAX_INSTRUCTIONS_BIT_SIZE}')
         print(f'\nfor a total of\t=> {required_size}\n')
 
     required_size = int(required_size / 3 + 1)
@@ -482,8 +470,7 @@ def generate_image(s, source_image_path, output_image_path):
         was_a_num = instruction == transcriptor_dict['NUM'](0)[0]
         was_a_string = instruction == transcriptor_dict['STR']('')[0]
         
-        
-        # USEFULL FOR DEBUG, TRY IT !    
+        # Usefull for debug   
         if DEBUG:
             print(f'__________________________________________________')
             insctruction_name = inv_transcriptor_dict[instruction] if instruction in inv_transcriptor_dict.keys() else 'SPECIAL INSTRUCTION'
@@ -687,7 +674,6 @@ def run_image(image_array):
         elif was_last_instruction_str_part_1:
             size_to_read = MAX_STRING_LENGTH_BIT_SIZE
         elif was_last_instruction_str_part_2:
-            print(f'charbit is {CHAR_BIT_SIZE}, code_as_bit is {code_as_bit}')
             size_to_read = CHAR_BIT_SIZE*int(code_as_bit)
         else:
             size_to_read = MAX_INSTRUCTIONS_BIT_SIZE
@@ -778,6 +764,7 @@ if __name__ == '__main__':
         ast = parse(prog)
 
         transcriptd = ast.transcript()
+        
         warnings()
         generate_image(transcriptd, source_image_path, output)       
         
