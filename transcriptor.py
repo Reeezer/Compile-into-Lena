@@ -55,6 +55,7 @@ def can_invert(key):
     except Exception:
         return False
 
+
 # reverse the dict
 inv_transcriptor_dict = {v: k for k, v in transcriptor_dict.items() if can_invert(k)}
 
@@ -132,6 +133,7 @@ def var_to_rgb(var):
 
 NEGATIVE = 0
 POSITIVE = 1
+
 def num_to_rgb(num):
     # use False if numbers are unsigned, actually -127 is computed as 0- (+127) so only positive are concidered for now
     # verify_limits(num, MAX_NUM_BIT_SIZE, 'number too big or too short', False)
