@@ -105,8 +105,8 @@ def p_assign(p):
 	global i_assign
 	i_assign = 1
 	try:
-		if not check_type(p[i_assign+3],p[i_assign]):
-			print(f"WARNING ! Type assignation ({p[i_assign+3]} with {p[i_assign]})")
+		#if not check_type(p[i_assign+3],p[i_assign]):
+			#print(f"WARNING ! Type assignation ({p[i_assign+3]} with {p[i_assign]})")
 		p[0] = AST.AssignNode([AST.TokenNode(p[i_assign+1]),p[i_assign+3]])
 	except:
 		i_assign = 0
