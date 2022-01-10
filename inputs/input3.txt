@@ -5,4 +5,4 @@ while (a-10) {
 };
 print 100;
 string c = "string c";
-print c;
+print 3.5;

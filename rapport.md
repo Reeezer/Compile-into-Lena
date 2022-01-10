@@ -44,7 +44,7 @@ Le language supporte:
 - L'arithmétique numérique avec les variables
 - L'arithmétique numérique avec nombre et variable
 - Les fonctions sans argument ni valeur de retour
-- Les conditions IF et WHILE
+- Les conditions IF, ELSE et WHILE
     - Les conditions:
         - IF 0: FALSE
         - IF not 0: TRUE
@@ -63,7 +63,7 @@ Les images peuvent être carrées ou rectangulaires, le nombre de pixels disponi
 | Chaînes de caractères | **"[\w\s]+"** |
 | Type de variables | **int \| float \| double \| string** |
 | Mots réservés | **while, print, if, else, function** |
-| Opération arithmétique | **[+-*\^%/]** |
+| Opération arithmétique | **[+-*/\^%]** |
 
 ## Analyse syntaxique
 
@@ -90,15 +90,27 @@ Lors des opérations arithémtiques, un contrôle de type est effectué: par exe
 
 ### Utilisation des fonctions et des variables
 
-Chaque variable ou fonction définie est ajoutée à un set, si cette fonction ou variable n'est jamais utilisée un warning sera levé, mais le code compilera tout de même.
+Chaque variable ou fonction définie est ajoutée à un set, si cette fonction ou variable n'est jamais utilisée un warning sera levé en fin de génération, mais le code compilera tout de même.
 
 ### Portée des fonctions et des variables
 
-- Contrôle de l'utilisation ou non des variables et fonctions: par exemple, si trois variables (var0, var1 et var2) ne sont pas utilisées mais déclarées, le compilateur résumera ses variables en fin de compilation comme étant pas utilisées.
+Les variables possèdent des portées, il est donc impossible d'appeler une variable dans une portée plus basse (plus le nombre de bloc imbriqué augmente, plus le niveau est élevé) que celle où elle a été définie, auquel cas une erreur sera levée.
 
-- Portée des variables : si une variable est utilisée dans un niveau plus haut que là où elle est déclarée, le programme lèvera un exception.
+Les fonctions possèdent aussi une portée, il est donc impossible d'appeler une variable externe dans une fonction. De plus, les fonctions doivent forcément être définie au niveau le plus bas (portée par défaut).
 
-- Portée des fonctions : les fonctions doivent forcément être déclarée au niveau 0 (portée par défaut), et l'accès à des variables externes est impossible
+## Fonctionnalités
+
+### Opérations arithmétiques
+
+Certaines opérations arithmétiques ont été ajoutées par rapport au projet de base. En effet, il est maintenant possible d'effectuer un modulo, ainsi que le calcul de puissances sur des nombres.
+
+### If else
+
+Les if, else ont été ajouté au projet, il est donc possible d'exécuter un code si une condition est vraie et d'en exécuter un autre sinon.
+
+### Fonctions
+
+Il est possible de déclarer des fonctions, d'exécuter du code dedans, et de les appeler à divers endroit dans le code.
 
 ## Génération de code
 
@@ -214,4 +226,5 @@ L'ensemble des objectifs fixés ont été remplis, il est possible de compiler u
 
 Cependant, voici quelques points qui auraient pu être ajoutés: 
 - L'ajout de paramètres et la vérification de leur type dans les fonctions.
+- Le retour de variables dans les fonctions.
 - Insertion non successive du code dans l'image de destination.
