@@ -1,5 +1,6 @@
 import ply.lex as lex
 
+#These words can't be used other then their orignal purpose.
 reserved_words = (
 	'while',
 	'print',
@@ -8,6 +9,7 @@ reserved_words = (
 	'function'
 )
 
+#These words can't be used other then their orignal purpose.
 tokens = (
 	'NUMBER',
 	'CHAR',
@@ -17,7 +19,6 @@ tokens = (
 	'MOD',
 	'POW',
 	'IDENTIFIER',
-	'TYPE',
 ) + tuple(map(lambda s: s.upper(), reserved_words))
 
 literals = '();={}'
@@ -25,10 +26,6 @@ literals = '();={}'
 
 def t_ADD_OP(t):
 	r'[+-]'
-	return t
-
-def t_TYPE(t):
-	r'int|float|double|string'
 	return t
 
 def t_MOD(t):

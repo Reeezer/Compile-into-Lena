@@ -1,0 +1,5 @@
+function aFunction() {
+	print 10;
+};
+
+aFunction();

@@ -8,20 +8,22 @@ _Girardin Jarod_
 
 ## Introduction
 
-Ce projet consiste à créer un compilateur personalisé, à partir d'une base produite durant le cours.
+Ce projet consiste à créer un compilateur personalisé, à partir d'une base de code produite durant le cours.
 
 Notre programme permet de compiler un language inventé et de l'insérer dans une image, ainsi de que l'exécuter. Il est ainsi possible de faire de la stéganographie.
 
-Notre compilateur permet de principalement analyser et exécuter des programmes "arithmétiques", ainsi que de résoudre des opérations mathématiques.
+Notre compilateur permet de principalement d'analyser et exécuter des programmes "arithmétiques", ainsi que de résoudre des opérations mathématiques.
 
 ## Utilisation
-
+```batch
     transcriptor.py {{MODE}} {{SOURCE}} {{IMAGE_SOURCE}} --debug
-
+```
 MODE: précise si l'action est de générer ou d'exécuter une image
 
+```batch
     -g // générer
     -r // exécuter
+```
 
 SOURCE: chemin vers le code à "compiler" dans le cas d'une génération, ou le chemin vers l'image à exécuter dans le cas d'une exécution
 
@@ -31,26 +33,25 @@ IMAGE_SOURCE: chemin vers l'image dans laquelle il faut "compiler" le code dans 
 
 _exemple_
 
+```batch
     python transcriptor.py -g my_code.txt my_image.png
     python transcriptor.py -r code_my_image.png
+```
 
 ## Spécifications du language
 
 Le language supporte:
-- Les variables
-- Les nombres entiers
+- Les nombres 
 - Les chaînes de caractères (et aussi les caractères simples)
-- L'arithmétique numérique
-- L'arithmétique numérique avec les variables
-- L'arithmétique numérique avec nombre et variable
-- Les fonctions sans argument ni valeur de retour
+- L'arithmétique numérique avec nombres et variables
+- Les fonctions (sans argument ni valeur de retour)
 - Les conditions IF, ELSE et WHILE
     - Les conditions:
         - IF 0: FALSE
         - IF not 0: TRUE
             - ex. WHILE (x) {...} => tant que x n'est pas 0
 - Le print console
-- Séparation de chaque ligne par un point-virgule `;`
+- Séparation de chaque ligne par un point-virgule (`;`)
 
 Les images peuvent être carrées ou rectangulaires, le nombre de pixels disponibles et nécessaires sont affichés dans la console. Dans le cas ou le nombre de pixels disponible est trop faible, la génération ne sera pas finalisée.
 
@@ -61,7 +62,6 @@ Les images peuvent être carrées ou rectangulaires, le nombre de pixels disponi
 | Nombres | **\d+(\.\d+)?**  |
 | Caractères | **\'[\w\s]\'** |
 | Chaînes de caractères | **"[\w\s]+"** |
-| Type de variables | **int \| float \| double \| string** |
 | Mots réservés | **while, print, if, else, function** |
 | Opération arithmétique | **[+-*/\^%]** |
 
@@ -73,30 +73,153 @@ Les images peuvent être carrées ou rectangulaires, le nombre de pixels disponi
 | boucles | **structure: WHILE expression '{' programme '}'** |
 | conditions | **structure: IF expression '{' programme '}' \| IF expression '{' programme '}' ELSE '{' programme '}'** |
 | utilisation des parenthèses | **expression: '(' expression ')'**  |
-| assignation | **assignation: TYPE IDENTIFIER '=' expression \| IDENTIFIER '=' expression** |
+| caractère / chaînes de caractères | **expression : CHAR | STRING** |
+| assignation | **assignation: IDENTIFIER '=' expression** |
 | affichage | **statement: PRINT expression** |
 | nommage des fonctions | **function_name: IDENTIFIER '(' ')'** |
 | déclaration de fonctions | **structure: FUNCTION function_name '{' programme '}'** |
 | appel des fonctions | **structure: function_name** |
-| récursivité | **programme: statement ';' programme** |
+| programme | **programme: statement ';'** |
+| récursivité programme | **programme: statement ';' programme** |
 
 ## Analyse sémantique 
-
-### Type
-
-Un contrôle de type est appliqué aux variables, en fonction de la valeur qui leur est affectée. Les types supportés sont: int, string, float (FIXME)
-
-Lors des opérations arithémtiques, un contrôle de type est effectué: par exemple, si on additionne un **int** avec un **float**, un warning sera levé, mais le code compilera tout de même.
 
 ### Utilisation des fonctions et des variables
 
 Chaque variable ou fonction définie est ajoutée à un set, si cette fonction ou variable n'est jamais utilisée un warning sera levé en fin de génération, mais le code compilera tout de même.
 
+_exemple_
+
+```
+input: inputs/functionnalities/function_variable_warning.txt
+
+a = 0;
+b = 0;
+c = 0;
+
+function a(){
+	z = 0;
+};
+
+function b(){
+	z = 0;
+};
+
+function c(){
+	z = 0;
+};
+```
+
+```
+output:
+
+*** WARNING: Those functions are not used:
+             - a
+             - b
+             - c
+
+*** WARNING: Those variables are not used:
+             - a
+             - b
+             - c
+```
+
+> Les variables z dans les fonctions ne sont pas marquées comme non utilisées car les fonctions ne sont pas appelées, et on ne compile donc à aucun moment le code contenu à l'intérieur. 
+
 ### Portée des fonctions et des variables
 
 Les variables possèdent des portées, il est donc impossible d'appeler une variable dans une portée plus basse (plus le nombre de bloc imbriqué augmente, plus le niveau est élevé) que celle où elle a été définie, auquel cas une erreur sera levée.
 
-Les fonctions possèdent aussi une portée, il est donc impossible d'appeler une variable externe dans une fonction. De plus, les fonctions doivent forcément être définie au niveau le plus bas (portée par défaut).
+_exemple_
+
+```
+input: inputs/functionnalities/variable_scope.txt
+
+if (1) {
+	b = 0;
+};
+
+print b;
+```
+
+```
+output:
+
+*** ERROR: Scope is not being respected for variable 'b' in function 'main'
+***        Exit code parsing
+```
+
+Les fonctions possèdent aussi une portée, il est donc impossible d'appeler une variable externe dans une fonction. 
+
+_exemples_
+
+```
+input: inputs/functionnalities/function_scope1.txt
+
+a = 0;
+
+function f(){
+	print a;
+};
+
+f();
+```
+
+```
+output:
+
+*** ERROR: Scope is not being respected for variable 'f_a' in function 'f'
+***        Exit code parsing
+```
+
+De plus, les fonctions doivent forcément être définie au niveau le plus bas (portée par défaut).
+
+_exemples_
+
+```
+input: inputs/functionnalities/function_scope2.txt
+
+if (1) {
+	function f(){
+		a = 0;
+		print a;
+	};
+};
+
+f();
+```
+
+```
+output:
+
+*** ERROR: Function f has to be declared as global
+***        Exit code parsing
+```
+
+### Redéfinition de fonctions
+
+Une fonction ne peut-être définie une seconde fois.
+
+_exemple_
+
+```
+input: inputs/functionnalities/function_override.txt
+
+function f(){
+	a = 0;
+};
+
+function f(){
+	b = 0;
+};
+```
+
+```
+output:
+
+*** ERROR: Function f can't be overrided
+***        Exit code parsing
+```
 
 ## Fonctionnalités
 
@@ -104,15 +227,92 @@ Les fonctions possèdent aussi une portée, il est donc impossible d'appeler une
 
 Certaines opérations arithmétiques ont été ajoutées par rapport au projet de base. En effet, il est maintenant possible d'effectuer un modulo, ainsi que le calcul de puissances sur des nombres.
 
+_exemple_
+
+```
+input: inputs/functionnalities/modulo_power.txt
+
+a = 4 % 2;
+b = 5^2;
+
+print a;
+print b;
+```
+
+```
+output:
+
+0.0
+25.0
+```
+
+### Gestion des chaînes de caractères
+
+Il est possible d'assigner et d'affichager des caractères et chaînes de caractères.
+
+```
+input: inputs/functionnalities/chars_&_strings.txt
+
+c = 'c';
+str = "str";
+
+print c;
+print str;
+
+```
+
+```
+output:
+
+c  
+str
+```
+
 ### If else
 
-Les if, else ont été ajouté au projet, il est donc possible d'exécuter un code si une condition est vraie et d'en exécuter un autre sinon.
+Les if, else ont été ajouté au projet, il est donc possible d'exécuter un bloc si une condition est vraie et d'en exécuter un autre sinon.
+
+_exemple_
+
+```
+input: inputs/functionnalities/if_else.txt
+
+if (0){
+	print 150;
+} else {
+	print 10;
+};
+```
+
+```
+output:
+
+10.0
+```
 
 ### Fonctions
 
 Il est possible de déclarer des fonctions, d'exécuter du code dedans, et de les appeler à divers endroit dans le code.
 
-## Génération de code
+_exemple_
+
+```
+input: inputs/functionnalities/function_declaration
+function aFunction() {
+	print 10;
+};
+
+aFunction();
+
+```
+
+```
+output:
+
+10.0
+```
+
+## Génération du code intermédiaire
 
 La génération de code se sépare en deux étapes:
 - Compilation du code en [pseudo-assembleur](#pseudo-assembleur)
@@ -186,7 +386,7 @@ Pour les constantes, seul les nombre entiers sont acceptés, et leur valeur bina
 
 _exemple_
 
-```
+```python
 var x = 2;
 var y = 3;
 var z = x+y;
@@ -196,7 +396,7 @@ Ici 3 variables sont utilisées, donc la logique voudrait que chaque variable fa
 
 Avec:
 
-```
+```python
 x = 00
 y = 01
 z = 10

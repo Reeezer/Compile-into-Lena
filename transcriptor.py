@@ -1,10 +1,3 @@
-from re import T
-import AST
-from AST import addToClass
-from functools import reduce
-from ast import literal_eval as string_to_tuple
-from math import log
-
 '''
 Authors:
 
@@ -13,7 +6,7 @@ Authors:
     Girardin Jarod
 
 Date:
-    20.12.2021
+    14.01.2022
 
 Usage:
     -g
@@ -22,6 +15,14 @@ Usage:
     -r
     Run a runnable image
 '''
+
+from re import T
+import AST
+from AST import addToClass
+from functools import reduce
+from ast import literal_eval as string_to_tuple
+from math import log
+
 
 transcriptor_dict = {
     'EMPTY': 0,
@@ -119,19 +120,21 @@ def verify_chars_are_ascii(s):
             raise Exception(f'{c} is not an ASCII character\nin string {s}')
 
 def var_to_rgb(var):
+    transcript.var_counter += 1
+    transcript.instructions_counter += 1
+
     if var in vars.keys():
-        transcript.var_counter += 1
-        transcript.instructions_counter += 1
         if var in vars_unused:
             vars_unused.remove(var)
         return vars[var]
+    
     verify_limits(var_to_rgb.var_name_counter, MAX_VAR_BIT_SIZE, 'too much var')
+    
     x = transcriptor_dict['VAR'](var_to_rgb.var_name_counter)
     var_to_rgb.var_name_counter += 1
     vars[var] = x
     vars_unused.add(var)
-    transcript.var_counter += 1
-    transcript.instructions_counter += 1
+
     return x
 
 NEGATIVE = 0
@@ -218,11 +221,12 @@ def transcript(self):
 
         x = transcriptor_dict['PUSHV']
         v = var_to_rgb(var_name)
-        # transcript.var_counter += 1 added in var_to_rgb
     else:
         x = transcriptor_dict['PUSHC']
         v = num_to_rgb(self.tok)
+
     transcript.instructions_counter += 1
+    
     return f"{x}\n{v}\n"
 
 

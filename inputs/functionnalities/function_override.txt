@@ -1,0 +1,7 @@
+function f(){
+	a = 0;
+};
+
+function f(){
+	b = 0;
+};

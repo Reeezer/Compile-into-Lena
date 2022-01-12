@@ -1,0 +1,15 @@
+a=0;
+b=0;
+c=0;
+
+function a(){
+	z=0;
+};
+
+function b(){
+	z=0;
+};
+
+function c(){
+	z=0;
+};
