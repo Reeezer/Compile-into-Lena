@@ -1,4 +1,4 @@
-aValue1=6+5%3;
+aValue1=2+2%2;
 print aValue1;
 aValue2=aValue1^2;
 while(aValue2-128)
@@ -13,4 +13,4 @@ while(aValue2-128)
 	print aValue2;
 };
 
-print aValue3;
+print 'a';

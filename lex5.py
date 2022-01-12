@@ -13,9 +13,9 @@ tokens = (
 	'CHAR',
 	'STRING',
 	'ADD_OP',
-	'MUL_OP',
 	'MOD',
 	'POW',
+	'MUL_OP',
 	'IDENTIFIER',
 	'TYPE',
 ) + tuple(map(lambda s: s.upper(), reserved_words))

@@ -14,14 +14,22 @@ operations = {
 	'^' : lambda x,y: math.pow(x,y),
 }
 
-vars = {}
-
 used_types = {
     'int': int,
     'float': float,
     'str': str,
     # etc
 }
+
+precedence = (
+	('left', 'ADD_OP'),
+	('left', 'MOD'),
+	('left', 'POW'),
+	('left', 'MUL_OP'),
+	('right', 'UMINUS'),  
+)
+
+vars = {}
 
 def check_type(value, expected):
 	return isinstance(eval((str)(value)),used_types[expected])
@@ -74,7 +82,6 @@ def p_expression_op(p):
 			| expression MOD expression
 			| expression POW expression'''
 
-	#if not isinstance(p[1],AST.OpNode) and not check_type(p[1],type(eval((str)(p[3]))).__name__) :
 	if not isinstance(p[1],AST.OpNode) and not check_type(p[1],type(eval((str)(p[3]))).__name__) :
 		print(f"WARNING ! : operation '{p[2]}' between two different types of values: ({p[1]} and {eval((str)(p[3]))}) !")
 	
@@ -116,13 +123,6 @@ def p_error(p):
 	print ("Syntax error in line %d" % p.lineno)
 	yacc.errok()
 
-precedence = (
-	('left', 'ADD_OP'),
-	('left', 'MOD'),
-	('left', 'POW'),
-	('left', 'MUL_OP'),
-	('right', 'UMINUS'),  
-)
 
 yacc.yacc(outputdir='generated')
 
