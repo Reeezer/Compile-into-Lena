@@ -43,8 +43,8 @@ Le projet exploite le fichier "svm.py" (Simple Virtual Machine (or Stupid Virtua
 Le projet permettra de faire une analyse stricte du code à compiler en image. L'idée est de renvoyer des informations claires sur les erreurs rencontrées à l'utilisateur de notre compilateur. Par exemple, les puissances pourront être utilisées avec l'opérateur "^" et non pas avec "\*\*". Ceci devrait retourner une opération invalide.
 
 ## Analyse sémantique
-Le projet souhaite pouvoir faire un contrôle du typage des variables et de mettre en place la gestion des fonctions. Par types, le must have doit être au minimum les entiers (int) et nombres flottants (float). L'idéaél serait d'avoir aussi des chaînes de caractères (string).
 
+Le projet souhaite pouvoir faire un contrôle du typage des variables et de mettre en place la gestion des fonctions. Par types, le must have doit être au minimum les entiers (int) et nombres flottants (float). L'idée serait d'avoir aussi des chaînes de caractères (string).
 
 Faire un arbre ou un tableau des symboles. Voir si des variables 
 

@@ -38,6 +38,10 @@ _exemple_
     python transcriptor.py -r code_my_image.png
 ```
 
+De plus, nous avons structurés notre projet comme les TPs, il est donc possible de lancer le lexème ainsi que le parser via les fichiers lex.py et parser.py
+
+Dans ce projet, il y aussi un script clean.sh permettant de nettoyer intégralement l'espace de travail afin de reprendre sur de bonnes bases les essais.
+
 ## Spécifications du language
 
 Le language supporte:
@@ -258,7 +262,6 @@ str = "str";
 
 print c;
 print str;
-
 ```
 
 ```
@@ -268,7 +271,7 @@ c
 str
 ```
 
-### If else
+### If else 
 
 Les if, else ont été ajouté au projet, il est donc possible d'exécuter un bloc si une condition est vraie et d'en exécuter un autre sinon.
 
@@ -289,6 +292,8 @@ output:
 
 10.0
 ```
+
+> NB: pour le if else, il faut seulement mettre un ';' à la fin du bloc complet, et non pour le if et pour le else.
 
 ### Fonctions
 
@@ -322,11 +327,13 @@ La deuxième partie diffère légèrement du cours, et est assez simple.
 
 ### Compilation du code en pseudo-assembleur
 
-Nous avons utilisé le code svm.py fournit durant le cours, en l'adaptant à notre code.
+Lors de la compilation, le langage créé est directement transformé en code pseudo-assembleur, qui sera par la suite transformé en couleur RBG afin d'être "caché" dans une image.
+
+TODO Manque d'explications ?
 
 ### Insertion du pseudo-assembleur dans l'image
 
-Le concept utilisé est le suivant: Pour chaque instruction, un **int** différent est utilisé. Chaque **int** peut être vu comme un nombre binaire. Ce nombre binaire est caché à l'intérieur des différents pixels de l'image (allant de en haut à gauche à en bas à droite: "lecture européenne").
+Le concept utilisé est le suivant: pour chaque instruction, un **int** différent est utilisé. Chaque **int** peut être vu comme un nombre binaire. Ce nombre binaire est caché à l'intérieur des différents pixels de l'image (allant de en haut à gauche à en bas à droite: "lecture européenne").
 
 _exemple_
 
@@ -334,14 +341,13 @@ Prenons une instruction simple **PRINT**, et assumons que son **int** correspond
 
 Assumons qu'il y ait 13 instructions différentes au total, chaque instruction fait donc 4 bits de long ($log_{2}{13}$ arrondi à l'entier suppérieur). Notre instruction **PRINT** est donc **`0101`**. Il faut donc la cacher sur 4 couleurs.
 
-Chaque pixel fait 3 couleurs (RGB), l'instruction est donc cachée dans les valeurs RGB du pixel p, et dans le R du pixel p' (p et p' voir ci-dessous). Le bit de poids faible est modifié, mettons donc p et p' ayant ces valeurs par défaut:
+Chaque pixel fait 3 couleurs (RGB), l'instruction est donc cachée dans les valeurs RGB d'un premier pixel p, et dans le R d'un second pixel p' (p et p' voir ci-dessous). Le bit de poids faible est modifié, mettons donc p et p' ayant ces valeurs par défaut:
 
 #### Insertion dans l'image
 
 ##### p
 
 un pixel violet-rose
-
 - R: 1101 1110
 - G: 0000 0000
 - B: 1111 1111
@@ -349,7 +355,6 @@ un pixel violet-rose
 ##### p'
 
 un pixel vert foncé
-
 - R: 0011 1011
 - G: 0111 0010
 - B: 0011 1010
@@ -368,9 +373,9 @@ Après l'insertion de notre instruction, les pixels ont cette forme :
 - G: 0111 0010
 - B: 0011 1010
 
-La prochaine instruction est ajoutée à partir de la valeur G du pixel p'.
+La prochaine instruction est donc ajoutée à partir de la valeur G du pixel p'.
 
-Pour les variables, les constantes, les body (pour les **GOTO**), et autre valeur "spéciale" (qui ne peut pas être écrite avec simplement une instruction), une manière équivalente est utilisée:
+Pour les variables, les constantes, les body (pour les **GOTO**), et autre valeur "spéciale" (qui ne peut pas être écrite avec une seule instruction), une manière équivalente est utilisée:
 - Une instruction indiquant quel type de valeur à insérer est utilisé.
 - Dépendant de la valeur, un certain nombre de pixels va être inséré.
 
@@ -378,15 +383,15 @@ _exemple_
 
 PUSHV x
 
-- inertion instruction PUSHV
+- insertion instruction PUSHV
 - insertion instruction VAR
 - insertion valeur de x
 
-Pour les constantes, seul les nombre entiers sont acceptés, et leur valeur binaire est directement utilisée. Pour les variables, chaque nouvelle variable prend une nouvelle valeur.
+Pour les constantes, seul les nombres entiers sont acceptés (en réalité les nombres flottants sont acceptés mais castés en int par la suite), et leur valeur binaire est directement utilisée. Pour les variables, chaque nouvelle variable prend une nouvelle valeur.
 
 _exemple_
 
-```python
+```
 var x = 2;
 var y = 3;
 var z = x+y;
@@ -396,27 +401,66 @@ Ici 3 variables sont utilisées, donc la logique voudrait que chaque variable fa
 
 Avec:
 
-```python
+```
 x = 00
 y = 01
 z = 10
 ```
 
-Mais les longueurs en bit des différentes valeurs (variables, constantes, string, etc) sont définies en dur (et donc modifiables).
+Mais les longueurs en bit des différentes valeurs (variables, constantes, string, etc) sont définies en dur ce qui veut dire que dans l'état par exemple il n'est possible d'avoir un nombre que contenu entre -255 et 255.
 
 ## Exécuter une image
 
-L'image passée en paramètre est concidérée comme "portant du code". Si ce n'est pas le cas, une erreur est levée.
+L'image passée en paramètre est concidérée comme "portant du code correct". Si ce n'est pas le cas, une erreur est levée.
 
 L'image est décortiquée couleur par couleur (voir [insertion de code dans image](#Insertion_dans_l_image) ci-dessus) et retransformée en [pseudo-assembleur](#pseudo-assembleur).
 
-Une fois le [pseudo-assembleur](#pseudo-assembleur) réécrit, il est exécuté par le script _svm.py_ (donné en cours) et modifié pour correspondre à notre language.
+Une fois le [pseudo-assembleur](#pseudo-assembleur) réécrit, il est exécuté par le script _svm.py_ (donné en cours) et modifié pour correspondre à notre language (PUSHS, MOD, POW, PASS).
 
-## Pseudo-assembleur
+## Problèmes connus
 
-Le fichier passé en paramètre Il est intérprété par le fichier _svm.py_ (donné en cours) et modifié pour correspondre à notre language. 
+### Chaines de caractères
 
-## Nombres flottants
+L'arithmétique des chaînes de caractères n'est pas supportée.
+
+_exemple_
+
+```
+input: inputs/functionnalities/string1.txt
+
+s1 = "s1";
+s2 = "s2";
+s3 = s1+s2;
+print s3;
+```
+
+```
+output:
+
+s1s2
+```
+
+L'arithmétique des chaînes de caractères avec des nombres n'est pas supportée.
+
+_exemple_
+
+```
+input: inputs/functionnalities/string1.txt
+
+s1 = "s1";
+i1 = 3;
+
+mixed = s1+i1;
+print mixed;
+```
+
+```
+output:
+
+TypeError: can only concatenate str (not "float") to str
+```
+
+### Nombre flottants
 
 Les nombres flottants ne sont pas supportés
 
@@ -426,13 +470,9 @@ Le problème est que lorsque nous avons ajouté cette fonctionnalité, toutes le
 
 Cela demanderait du temps en debug, mais nous préférons rendre un projet testé et fonctionnel que seulement "fonctionnel en théorie".
 
-## Problèmes connus
-
-- Analyse du type dans les opérations : il arrive que le programme ne gère pas correctement la vérification des types lors des opérations arithmétiques, notamment lorsque des boucles sont utilisées.
-
 ## Conclusion
 
-L'ensemble des objectifs fixés ont été remplis, il est possible de compiler un programme préalablement écrit dans une image, ainsi que de l'exécuter. Le code est bien 'caché' dans l'image, et reste inchangé.
+L'ensemble des objectifs fixés ont été remplis, il est possible de compiler un programme (préalablement écrit) dans une image, ainsi que de l'exécuter. Le code est bien 'caché' dans l'image, et reste inchangé.
 
 Cependant, voici quelques points qui auraient pu être ajoutés: 
 - L'ajout de paramètres et la vérification de leur type dans les fonctions.
