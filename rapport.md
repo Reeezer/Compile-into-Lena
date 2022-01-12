@@ -216,6 +216,16 @@ Une fois le [pseudo-assembleur](#pseudo-assembleur) réécrit, il est exécuté 
 
 Le fichier passé en paramètre Il est intérprété par le fichier _svm.py_ (donné en cours) et modifié pour correspondre à notre language. 
 
+## Nombres flottants
+
+Les nombres flottants ne sont pas supportés
+
+L'idée est d'utiliser les fonctions _floatToBits_ et _bitsToFloat_ afin de transformer le nombre flottant en nombre entier, pour ensuite le stocker en binaire, lors de l'exécution de faire l'inverse (binaire -> entier -> flottant).
+
+Le problème est que lorsque nous avons ajouté cette fonctionnalité, toutes les autres ne fonctionnent plus.
+
+Cela demanderait du temps en debug, mais nous préférons rendre un projet testé et fonctionnel que seulement "fonctionnel en théorie".
+
 ## Problèmes connus
 
 - Analyse du type dans les opérations : il arrive que le programme ne gère pas correctement la vérification des types lors des opérations arithmétiques, notamment lorsque des boucles sont utilisées.
@@ -228,3 +238,4 @@ Cependant, voici quelques points qui auraient pu être ajoutés:
 - L'ajout de paramètres et la vérification de leur type dans les fonctions.
 - Le retour de variables dans les fonctions.
 - Insertion non successive du code dans l'image de destination.
+- Ajout des nombres flottants (voir [nombres flottants](#nombres-flottants))

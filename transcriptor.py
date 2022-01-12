@@ -3,8 +3,7 @@ import AST
 from AST import addToClass
 from functools import reduce
 from ast import literal_eval as string_to_tuple
-from math import inf, log
-import numpy as np
+from math import log
 
 '''
 Authors:
@@ -137,6 +136,17 @@ def var_to_rgb(var):
 
 NEGATIVE = 0
 POSITIVE = 1
+
+# https://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python
+def floatToBits(f):
+    import struct
+    s = struct.pack('>f', f)
+    return struct.unpack('>l', s)[0]
+
+def bitsToFloat(b):
+    import struct
+    s = struct.pack('>l', b)
+    return struct.unpack('>f', s)[0]
 
 def num_to_rgb(num):
     # use False if numbers are unsigned, actually -127 is computed as 0- (+127) so only positive are concidered for now
@@ -464,7 +474,7 @@ def controle_size(image):
         print(f'cond\tnb {transcript.cond_counter}\t=> {transcript.cond_counter * MAX_CONDITIONS_BIT_SIZE}')
         print(f'str\tnb {transcript.string_counter}\t=> {transcript.string_counter * MAX_STRING_LENGTH_BIT_SIZE} (for the length indicator)')
         print(f'char\tnb {transcript.char_counter}\t=> {transcript.char_counter * CHAR_BIT_SIZE}')
-        print(f'eof insttruction\tnb 1\t=> {MAX_INSTRUCTIONS_BIT_SIZE}')
+        print(f'eof instruction\tnb 1\t=> {MAX_INSTRUCTIONS_BIT_SIZE}')
         print(f'\nfor a total of\t=> {required_size}\n')
 
     required_size = int(required_size / 3 + 1)
