@@ -8,9 +8,9 @@ _Girardin Jarod_
 
 ## Introduction
 
-Ce projet consiste à créer un compilateur personalisé, à partir d'une base de code produite durant le cours.
+Ce projet consiste à créer un compilateur personnalisé, à partir d'une base de code produite durant le cours.
 
-Notre programme permet de compiler un language inventé et de l'insérer dans une image, ainsi de que l'exécuter. Il est ainsi possible de faire de la stéganographie.
+Notre programme permet de compiler un langage inventé et de l'insérer dans une image, ainsi de que l'exécuter. Il est ainsi possible de faire de la stéganographie.
 
 Notre compilateur permet de principalement d'analyser et exécuter des programmes "arithmétiques", ainsi que de résoudre des opérations mathématiques.
 
@@ -38,13 +38,13 @@ _exemple_
     python transcriptor.py -r code_my_image.png
 ```
 
-De plus, nous avons structurés notre projet comme les TPs, il est donc possible de lancer le lexème ainsi que le parser via les fichiers lex.py et parser.py
+De plus, nous avons structuré notre projet comme les TPs, il est donc possible de lancer le lexème ainsi que le parser via les fichiers lex.py et parser.py
 
 Dans ce projet, il y aussi un script clean.sh permettant de nettoyer intégralement l'espace de travail afin de reprendre sur de bonnes bases les essais.
 
-## Spécifications du language
+## Spécifications du langage
 
-Le language supporte:
+Le langage supporte:
 - Les nombres 
 - Les chaînes de caractères (et aussi les caractères simples)
 - L'arithmétique numérique avec nombres et variables
@@ -57,11 +57,11 @@ Le language supporte:
 - Le print console
 - Séparation de chaque ligne par un point-virgule (`;`)
 
-Les images peuvent être carrées ou rectangulaires, le nombre de pixels disponibles et nécessaires sont affichés dans la console. Dans le cas ou le nombre de pixels disponible est trop faible, la génération ne sera pas finalisée.
+Les images peuvent être carrées ou rectangulaires, le nombre de pixels disponibles et nécessaires est affiché dans la console. Dans le cas où le nombre de pixels disponible est trop faible, la génération ne sera pas finalisée.
 
 ## Analyse lexicale
 
-| Type d'identification | mot-clé/expréssion régulière |
+| Type d'identification | mot-clé/expression régulière |
 | --------- | ------------------ |
 | Nombres | **\d+(\.\d+)?**  |
 | Caractères | **\'[\w\s]\'** |
@@ -128,11 +128,11 @@ output:
              - c
 ```
 
-> Les variables z dans les fonctions ne sont pas marquées comme non utilisées car les fonctions ne sont pas appelées, et on ne compile donc à aucun moment le code contenu à l'intérieur. 
+> Les variables z dans les fonctions ne sont pas marquées comme non utilisées, car les fonctions ne sont pas appelées, et on ne compile donc à aucun moment le code contenu à l'intérieur. 
 
 ### Portée des fonctions et des variables
 
-Les variables possèdent des portées, il est donc impossible d'appeler une variable dans une portée plus basse (plus le nombre de bloc imbriqué augmente, plus le niveau est élevé) que celle où elle a été définie, auquel cas une erreur sera levée.
+Les variables possèdent des portées, il est donc impossible d'appeler une variable dans une portée plus basse (plus le nombre de blocs imbriqué augmente, plus le niveau est élevé) que celle où elle a été définie, auquel cas une erreur sera levée.
 
 _exemple_
 
@@ -176,7 +176,7 @@ output:
 ***        Exit code parsing
 ```
 
-De plus, les fonctions doivent forcément être définie au niveau le plus bas (portée par défaut).
+De plus, les fonctions doivent forcément être définies au niveau le plus bas (portée par défaut).
 
 _exemples_
 
@@ -252,7 +252,7 @@ output:
 
 ### Gestion des chaînes de caractères
 
-Il est possible d'assigner et d'affichager des caractères et chaînes de caractères.
+Il est possible d'assigner et d'affichage des caractères et chaînes de caractères.
 
 ```
 input: inputs/functionnalities/chars_&_strings.txt
@@ -273,7 +273,7 @@ str
 
 ### If else 
 
-Les if, else ont été ajouté au projet, il est donc possible d'exécuter un bloc si une condition est vraie et d'en exécuter un autre sinon.
+Les if, else ont été ajoutés au projet, il est donc possible d'exécuter un bloc si une condition est vraie et d'en exécuter un autre sinon.
 
 _exemple_
 
@@ -297,7 +297,7 @@ output:
 
 ### Fonctions
 
-Il est possible de déclarer des fonctions, d'exécuter du code dedans, et de les appeler à divers endroit dans le code.
+Il est possible de déclarer des fonctions, d'exécuter du code dedans, et de les appeler à divers endroits dans le code.
 
 _exemple_
 
@@ -333,13 +333,13 @@ TODO Manque d'explications ?
 
 ### Insertion du pseudo-assembleur dans l'image
 
-Le concept utilisé est le suivant: pour chaque instruction, un **int** différent est utilisé. Chaque **int** peut être vu comme un nombre binaire. Ce nombre binaire est caché à l'intérieur des différents pixels de l'image (allant de en haut à gauche à en bas à droite: "lecture européenne").
+Le concept utilisé est le suivant: pour chaque instruction, un **int** différent est utilisé. Chaque **int** peut être vu comme un nombre binaire. Ce nombre binaire est caché à l'intérieur des différents pixels de l'image (allant d’en haut à gauche à en bas à droite: "lecture européenne").
 
 _exemple_
 
 Prenons une instruction simple **PRINT**, et assumons que son **int** correspondant est le **5**. Son équivalent binaire est **`101`**.
 
-Assumons qu'il y ait 13 instructions différentes au total, chaque instruction fait donc 4 bits de long ($log_{2}{13}$ arrondi à l'entier suppérieur). Notre instruction **PRINT** est donc **`0101`**. Il faut donc la cacher sur 4 couleurs.
+Assumons qu'il y ait 13 instructions différentes au total, chaque instruction fait donc 4 bits de long ($log_{2}{13}$ arrondi à l'entier supérieur). Notre instruction **PRINT** est donc **`0101`**. Il faut donc la cacher sur 4 couleurs.
 
 Chaque pixel fait 3 couleurs (RGB), l'instruction est donc cachée dans les valeurs RGB d'un premier pixel p, et dans le R d'un second pixel p' (p et p' voir ci-dessous). Le bit de poids faible est modifié, mettons donc p et p' ayant ces valeurs par défaut:
 
@@ -387,7 +387,7 @@ PUSHV x
 - insertion instruction VAR
 - insertion valeur de x
 
-Pour les constantes, seul les nombres entiers sont acceptés (en réalité les nombres flottants sont acceptés mais castés en int par la suite), et leur valeur binaire est directement utilisée. Pour les variables, chaque nouvelle variable prend une nouvelle valeur.
+Pour les constantes, seuls les nombres entiers sont acceptés (en réalité les nombres flottants sont acceptés, mais castés en int par la suite), et leur valeur binaire est directement utilisée. Pour les variables, chaque nouvelle variable prend une nouvelle valeur.
 
 _exemple_
 
@@ -407,19 +407,19 @@ y = 01
 z = 10
 ```
 
-Mais les longueurs en bit des différentes valeurs (variables, constantes, string, etc) sont définies en dur ce qui veut dire que dans l'état par exemple il n'est possible d'avoir un nombre que contenu entre -255 et 255.
+Mais les longueurs en bit de différentes valeurs (variables, constantes, string, etc) sont définies en dur ce qui veut dire que dans l'état par exemple il n'est possible d'avoir un nombre que contenu entre -255 et 255.
 
 ## Exécuter une image
 
-L'image passée en paramètre est concidérée comme "portant du code correct". Si ce n'est pas le cas, une erreur est levée.
+L'image passée en paramètre est considérée comme "portant du code correct". Si ce n'est pas le cas, une erreur est levée.
 
 L'image est décortiquée couleur par couleur (voir [insertion de code dans image](#Insertion_dans_l_image) ci-dessus) et retransformée en [pseudo-assembleur](#pseudo-assembleur).
 
-Une fois le [pseudo-assembleur](#pseudo-assembleur) réécrit, il est exécuté par le script _svm.py_ (donné en cours) et modifié pour correspondre à notre language (PUSHS, MOD, POW, PASS).
+Une fois le [pseudo-assembleur](#pseudo-assembleur) réécrit, il est exécuté par le script _svm.py_ (donné en cours) et modifié pour correspondre à notre langage (PUSHS, MOD, POW, PASS).
 
 ## Problèmes connus
 
-### Chaines de caractères
+### Chaînes de caractères
 
 L'arithmétique des chaînes de caractères n'est pas supportée.
 
@@ -460,7 +460,7 @@ output:
 TypeError: can only concatenate str (not "float") to str
 ```
 
-### Nombre flottants
+### Nombre flottant
 
 Les nombres flottants ne sont pas supportés
 
@@ -468,7 +468,7 @@ L'idée est d'utiliser les fonctions _floatToBits_ et _bitsToFloat_ afin de tran
 
 Le problème est que lorsque nous avons ajouté cette fonctionnalité, toutes les autres ne fonctionnent plus.
 
-Cela demanderait du temps en debug, mais nous préférons rendre un projet testé et fonctionnel que seulement "fonctionnel en théorie".
+Cela demanderait du temps en debug, mais nous préférons rendre un projet testé et fonctionnel seulement "fonctionnel en théorie".
 
 ## Conclusion
 
