@@ -15,9 +15,11 @@ Notre programme permet de compiler un langage inventé et de l'insérer dans une
 Notre compilateur permet de principalement d'analyser et exécuter des programmes "arithmétiques", ainsi que de résoudre des opérations mathématiques.
 
 ## Utilisation
+
 ```batch
     transcriptor.py {{MODE}} {{SOURCE}} {{IMAGE_SOURCE}} --debug
 ```
+
 MODE: précise si l'action est de générer ou d'exécuter une image
 
 ```batch
@@ -38,7 +40,7 @@ _exemple_
     python transcriptor.py -r code_my_image.png
 ```
 
-De plus, nous avons structuré notre projet comme les TPs, il est donc possible de lancer le lexème ainsi que le parser via les fichiers lex.py et parser.py
+De plus, nous avons structuré notre projet comme les TPs, il est donc possible de lancer le lexème ainsi que le parser via les fichiers lex5.py et parser5.py
 
 Dans ce projet, il y aussi un script clean.sh permettant de nettoyer intégralement l'espace de travail afin de reprendre sur de bonnes bases les essais.
 
@@ -252,7 +254,7 @@ output:
 
 ### Gestion des chaînes de caractères
 
-Il est possible d'assigner et d'affichage des caractères et chaînes de caractères.
+Il est possible d'assigner et d'afficher des caractères et chaînes de caractères.
 
 ```
 input: inputs/functionnalities/chars_&_strings.txt
@@ -308,7 +310,6 @@ function aFunction() {
 };
 
 aFunction();
-
 ```
 
 ```
@@ -327,9 +328,7 @@ La deuxième partie diffère légèrement du cours, et est assez simple.
 
 ### Compilation du code en pseudo-assembleur
 
-Lors de la compilation, le langage créé est directement transformé en code pseudo-assembleur, qui sera par la suite transformé en couleur RBG afin d'être "caché" dans une image.
-
-TODO Manque d'explications ?
+Lors de la compilation, le langage créé est directement transformé en code pseudo-assembleur, qui sera par la suite transformé en bits afin d'être "caché" dans le code RGB d'une image.
 
 ### Insertion du pseudo-assembleur dans l'image
 
@@ -472,7 +471,7 @@ Cela demanderait du temps en debug, mais nous préférons rendre un projet test�
 
 ## Conclusion
 
-L'ensemble des objectifs fixés ont été remplis, il est possible de compiler un programme (préalablement écrit) dans une image, ainsi que de l'exécuter. Le code est bien 'caché' dans l'image, et reste inchangé.
+L'ensemble des objectifs fixés ont été remplis, en effet il est possible de compiler un programme (préalablement écrit) et de l'insérer dans une image, ainsi que de l'exécuter. Le code est bien 'caché' dans l'image, et reste inchangé.
 
 Cependant, voici quelques points qui auraient pu être ajoutés: 
 - L'ajout de paramètres et la vérification de leur type dans les fonctions.

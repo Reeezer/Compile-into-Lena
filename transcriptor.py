@@ -378,7 +378,7 @@ def transcript(self):
     current_scope[func_name] = 0
     var_scope[func_name] = {}
     
-    func[func_name] = self.children[1] # Because we need to increase the flag on each call, then we store the function declaration
+    func[func_name] = self.children[1] # Because we need to increase the flag on each call, then we store the function declaration, and paste it on the call
     
     func_unused.add(func_name)
     
