@@ -1,6 +1,7 @@
-aValue1=6+5%3;
+aValue1=2+2%2;
 print aValue1;
-aValue2=aValue1^2;
+aValue2 = aValue1^2;
+
 while(aValue2-128)
 {
 	aValue2 = aValue2*2;

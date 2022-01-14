@@ -1,0 +1,5 @@
+s1 = "s1";
+i1 = 3;
+
+mixed = s1+i1;
+print mixed;

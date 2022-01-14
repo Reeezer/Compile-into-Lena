@@ -1,0 +1,5 @@
+c = 'c';
+str = "str";
+
+print c;
+print str;
