@@ -1,4 +1,6 @@
-# TP Compilateur
+# Projet Compilateur
+
+# Compile into Lena
 
 _Muller Léon_
 
@@ -79,7 +81,7 @@ Les images peuvent être carrées ou rectangulaires, le nombre de pixels disponi
 | boucles | **structure: WHILE expression '{' programme '}'** |
 | conditions | **structure: IF expression '{' programme '}' \| IF expression '{' programme '}' ELSE '{' programme '}'** |
 | utilisation des parenthèses | **expression: '(' expression ')'**  |
-| caractère / chaînes de caractères | **expression : CHAR | STRING** |
+| caractère / chaînes de caractères | **expression : CHAR \| STRING** |
 | assignation | **assignation: IDENTIFIER '=' expression** |
 | affichage | **statement: PRINT expression** |
 | nommage des fonctions | **function_name: IDENTIFIER '(' ')'** |

@@ -582,9 +582,7 @@ def generate_image(s, source_image_path, output_image_path):
     # apply "EOF"
     for bit in split_into_bits(transcriptor_dict['EMPTY'], MAX_INSTRUCTIONS_BIT_SIZE):
         row_counter, column_counter, rgb_counter = change_bit(bit, image, row_counter, column_counter, rgb_counter)
-
-    # cv2.imshow("image", image)
-    # cv2.waitKey(0)
+        
     cv2.imwrite(output_image_path, image)
 
 
