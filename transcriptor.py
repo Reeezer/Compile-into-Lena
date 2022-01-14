@@ -23,6 +23,7 @@ Usage:
     Run a runnable image
 '''
 
+# dict storing all the instructions, and their following "rgb" code
 transcriptor_dict = {
     'EMPTY': 0,
     'PUSHV': 1,
@@ -56,7 +57,7 @@ def can_invert(key):
         return False
 
 
-# reverse the dict
+# reversed dict, use for executing a picture
 inv_transcriptor_dict = {v: k for k, v in transcriptor_dict.items() if can_invert(k)}
 
 # manually add the lambdas
@@ -134,20 +135,20 @@ def var_to_rgb(var):
     transcript.instructions_counter += 1
     return x
 
-NEGATIVE = 0
-POSITIVE = 1
 
-# https://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python
-def floatToBits(f):
-    import struct
-    s = struct.pack('>f', f)
-    return struct.unpack('>l', s)[0]
+# those two functions are not used, but mentionned in the report
+# # https://stackoverflow.com/questions/14431170/get-the-bits-of-a-float-in-python
+# def floatToBits(f):
+#     import struct
+#     s = struct.pack('>f', f)
+#     return struct.unpack('>l', s)[0]
 
-def bitsToFloat(b):
-    import struct
-    s = struct.pack('>l', b)
-    return struct.unpack('>f', s)[0]
+# def bitsToFloat(b):
+#     import struct
+#     s = struct.pack('>l', b)
+#     return struct.unpack('>f', s)[0]
 
+# transform a numeric value to a the value used to store into the picture
 def num_to_rgb(num):
     # use False if numbers are unsigned, actually -127 is computed as 0- (+127) so only positive are concidered for now
     # verify_limits(num, MAX_NUM_BIT_SIZE, 'number too big or too short', False)
@@ -157,6 +158,7 @@ def num_to_rgb(num):
     transcript.instructions_counter += 1
     return transcriptor_dict['NUM'](x)
 
+# same, but for a body
 def body_to_rgb():
     verify_limits(body_to_rgb.body_name_counter, MAX_BODIES_BIT_SIZE, 'too much bodies')
     transcript.body_counter += 2 # each time, two are used
@@ -165,6 +167,7 @@ def body_to_rgb():
     body_to_rgb.body_name_counter += 1
     return ret
 
+# same, but for a cond
 def cond_to_rgb():
     verify_limits(cond_to_rgb.cond_name_counter, MAX_CONDITIONS_BIT_SIZE, 'too much conditions')
     transcript.cond_counter += 2 # each time, two are used
@@ -173,6 +176,7 @@ def cond_to_rgb():
     cond_to_rgb.cond_name_counter += 1
     return ret
 
+# same, but for a string
 def string_to_rgb(s):
     verify_chars_are_ascii(s)
     verify_limits(len(s), MAX_STRING_LENGTH_BIT_SIZE, 'string too long')
@@ -183,6 +187,8 @@ def string_to_rgb(s):
     return ret
 
 def string_as_int(s):
+    '''change a string into an int
+    used to store into the picture'''
     ret = []
     for c in s:
         ret.append(ord(c))
@@ -417,6 +423,8 @@ def get_instruction(instruction):
         return string_to_tuple(instruction)
 
 def split_into_bits(value, max_bits):
+    '''split the specified value into array of bits
+    those bits will be assigned to the rgb values of the pixels in the picture'''
     if type(value) == list:
         ret = []
         for v in value:
@@ -442,6 +450,7 @@ def split_into_bits(value, max_bits):
     return ret
 
 def increment(row, column, array):
+    '''used to easily increment our index trackers of the picture'''
     column += 1
     if column >= array.shape[0]:
         column = 0
@@ -452,7 +461,8 @@ def increment(row, column, array):
     return row, column
 
 def controle_size(image):
-    '''size: total pixels needed '''
+    '''verify if the picture is large enough to store the code
+    size: total pixels needed'''
     required_size = (transcript.instructions_counter * MAX_INSTRUCTIONS_BIT_SIZE
     + transcript.var_counter   * MAX_VAR_BIT_SIZE
     + transcript.const_counter * MAX_NUM_BIT_SIZE
@@ -486,7 +496,8 @@ def controle_size(image):
         error_exit(f'The image has only {image_size} pixels')
     
 def change_bit(bit, image, row_counter, column_counter, rgb_counter):
-    '''rgb_value is {2, 1, 0} in rgb (...[2] means red value of pixel)'''
+    '''change the less-valuable bit of the picture, on the specified pixel, on the specified r, g or b value
+    rgb_value is {2, 1, 0} in rgb (...[2] means red value of pixel)'''
     actual_color = image[row_counter][column_counter][rgb_counter]
     
     if actual_color % 2 == 0 and bit == 1:
@@ -601,7 +612,23 @@ was_last_instruction_str_part_2 = False
 
 
 def decode(code_rgb):
-    '''headhache assured on this function'''
+    '''headhache assured on this function
+    it will decode the actual code stored inside the pixels of the picture
+    
+    depending on which last instruction was used, il will interprete differently the value
+    
+    ex. code is 21 => could be an instruction, a numeric value, a variable, etc
+    
+    return the string to add in the "assembly" file, along with a boolean
+    the boolean says if you have to new line after the string, or keep writing on the same line
+    
+    ex:
+    PUSHC 3
+    PRINT
+    
+    [0] "PUSHC", False
+    [1] "3", True
+    [2] "PRINT", True'''
 
     global was_last_operation_linked_with_body_or_cond
     global was_last_instruction_var
@@ -616,6 +643,7 @@ def decode(code_rgb):
     # ex.
     # body0: PUSHC 3\n    # false
     # JINZ body0\n        # true
+
     old_was_last_operation_linked_with_body_or_cond = was_last_operation_linked_with_body_or_cond
     if code_rgb != transcriptor_dict['BODY'](0)[0] and code_rgb != transcriptor_dict['COND'](0)[0]:
         was_last_operation_linked_with_body_or_cond = (
